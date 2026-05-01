@@ -1,1 +1,1035 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lightning Dice - Dual Model AI Debug Dashboard v11.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 70%, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 27, 75, 0.8));
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            border-bottom: 3px solid #fbbf24;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            font-size: 36px;
+            background: linear-gradient(135deg, #fff, #fbbf24, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            opacity: 0.7;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .control-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .btn-primary { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1a1a2e; box-shadow: 0 4px 15px rgba(251,191,36,0.3); }
+        .btn-info { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; }
+        .btn-success { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+        .btn-warning { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+        .btn:hover { transform: translateY(-3px); opacity: 0.95; }
+
+        .status-bar {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 15px 25px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .ws-status { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; animation: pulse 1.5s infinite; }
+        .ws-connected { background: #10b981; box-shadow: 0 0 8px #10b981; }
+        .ws-disconnected { background: #ef4444; animation: none; }
+        .live-badge { background: #ef4444; padding: 2px 10px; border-radius: 20px; font-size: 10px; margin-left: 10px; animation: blink 1.5s infinite; }
+
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.7), rgba(30, 27, 75, 0.7));
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(251,191,36,0.3);
+        }
+
+        .stat-card h4 { font-size: 13px; opacity: 0.7; margin-bottom: 10px; letter-spacing: 1px; }
+        .stat-value { font-size: 32px; font-weight: 800; background: linear-gradient(135deg, #fff, #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        /* Dual Model Pattern Card */
+        .pattern-card-main {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.6), rgba(30, 27, 75, 0.6));
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(251,191,36,0.3);
+            transition: all 0.3s ease;
+            margin-bottom: 25px;
+        }
+
+        .pattern-card-main .card-header {
+            padding: 18px 22px;
+            background: rgba(0,0,0,0.3);
+            border-bottom: 2px solid #fbbf24;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .pattern-card-main .card-body { padding: 20px; }
+
+        .pattern-info {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 16px;
+        }
+
+        .pattern-info-item {
+            text-align: center;
+            flex: 1;
+        }
+
+        .pattern-info-label {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 8px;
+        }
+
+        .pattern-info-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fbbf24;
+        }
+
+        .pattern-match {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .pattern-wait {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .pattern-active {
+            background: rgba(16, 185, 129, 0.3);
+            color: #4ade80;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            animation: pulse 1.5s infinite;
+        }
+
+        /* User Preference Selector (NEW v11.0) */
+        .preference-selector {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .preference-title {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 12px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .preference-options {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+
+        .pref-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 40px;
+            background: rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .pref-option:hover {
+            background: rgba(251, 191, 36, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .pref-option input {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+            accent-color: #fbbf24;
+        }
+
+        .pref-option label {
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .pref-continue label { color: #4ade80; }
+        .pref-switch label { color: #fbbf24; }
+        .pref-auto label { color: #a78bfa; }
+
+        /* Models Status (NEW v11.0) */
+        .models-status {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .models-title {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 12px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .model-cards {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .model-card {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .model-card.continue-card { border-left: 3px solid #4ade80; }
+        .model-card.switch-card { border-left: 3px solid #fbbf24; }
+        .model-card.active-card { background: rgba(251, 191, 36, 0.15); }
+
+        .model-name {
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .model-value {
+            font-size: 22px;
+            font-weight: 800;
+            margin: 5px 0;
+        }
+
+        .model-value.continue { color: #4ade80; }
+        .model-value.switch { color: #fbbf24; }
+
+        .model-accuracy {
+            font-size: 9px;
+            opacity: 0.7;
+        }
+
+        .model-status {
+            font-size: 9px;
+            margin-top: 5px;
+        }
+
+        .selector-decision {
+            background: rgba(251, 191, 36, 0.1);
+            border-radius: 10px;
+            padding: 8px;
+            margin-top: 12px;
+            text-align: center;
+            font-size: 10px;
+            color: #fbbf24;
+        }
+
+        /* Dynamic Values Row */
+        .dynamic-values-row {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 16px;
+            padding: 15px 20px;
+            margin: 15px 0;
+            text-align: center;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .dynamic-values-row.active {
+            border-color: #4ade80;
+            box-shadow: 0 0 15px rgba(74, 222, 128, 0.2);
+        }
+
+        .dynamic-value-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 20px;
+            margin: 0 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 40px;
+        }
+
+        .dynamic-label {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .dynamic-value {
+            font-size: 24px;
+            font-weight: 800;
+        }
+
+        .dynamic-value.continue { color: #4ade80; }
+        .dynamic-value.switch { color: #fbbf24; }
+
+        .update-animation {
+            animation: valueUpdate 0.5s ease;
+        }
+
+        @keyframes valueUpdate {
+            0% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.3); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Patterns Grid */
+        .patterns-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .pattern-ref-card {
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            padding: 12px 15px;
+            border-left: 3px solid #fbbf24;
+            transition: all 0.3s ease;
+        }
+
+        .pattern-ref-card:hover {
+            transform: translateX(5px);
+            border-left-color: #4ade80;
+        }
+
+        .pattern-ref-text {
+            font-family: monospace;
+            font-size: 14px;
+            font-weight: 600;
+            color: #fbbf24;
+            margin-bottom: 8px;
+        }
+
+        .pattern-ref-actions {
+            font-size: 11px;
+            color: #a78bfa;
+        }
+
+        .prediction-display {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #1a1a2e;
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .prediction-group {
+            font-size: 48px;
+            font-weight: 800;
+        }
+
+        .protection-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .protection-continue {
+            background: rgba(16, 185, 129, 0.3);
+            color: #10b981;
+        }
+
+        .protection-switch {
+            background: rgba(245, 158, 11, 0.3);
+            color: #f59e0b;
+        }
+
+        .retry-badge {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            margin-left: 8px;
+        }
+
+        .console-log {
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            border-radius: 20px;
+            padding: 20px;
+            margin-top: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .console-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .console-content {
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .console-line { padding: 5px 8px; border-bottom: 1px solid rgba(255,255,255,0.03); font-family: monospace; }
+        .console-line.error { color: #ef4444; }
+        .console-line.warning { color: #fbbf24; }
+        .console-line.success { color: #4ade80; }
+        .console-line.info { color: #60a5fa; }
+
+        .clear-console {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            padding: 6px 16px;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+        }
+        .clear-console:hover { background: rgba(255,255,255,0.2); }
+
+        @media (max-width: 1000px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .dynamic-value-item { padding: 5px 12px; margin: 5px; }
+            .dynamic-value { font-size: 18px; }
+            .model-cards { flex-direction: column; }
+            .preference-options { gap: 15px; }
+            .pref-option { padding: 5px 12px; }
+            .pref-option label { font-size: 10px; }
+        }
+        
+        @media (max-width: 600px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            body { padding: 10px; }
+            .dynamic-values-row { padding: 10px; }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fbbf24;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>⚡ Lightning Dice - Dual Model AI Debug Dashboard v11.0</h1>
+        <p>ডুয়াল মডেল (CONTINUE/SWITCH) | সিলেক্টর মডেল | ইউজার প্রেফারেন্স</p>
+    </div>
+
+    <div class="control-bar">
+        <button class="btn btn-primary" id="testAllBtn">🧪 ডায়াগনস্টিক রান করুন</button>
+        <button class="btn btn-info" id="fetchStatusBtn">📡 স্ট্যাটাস নিন</button>
+        <button class="btn btn-success" id="testPredictionBtn">🎯 টেস্ট প্রেডিকশন</button>
+        <button class="btn btn-warning" id="forceRefreshBtn">🔄 রিফ্রেশ</button>
+        <button class="btn btn-danger" id="clearConsoleBtn">🗑 কনসোল ক্লিয়ার</button>
+    </div>
+
+    <div class="status-bar">
+        <div><span class="ws-status" id="wsStatusDot"></span><span id="wsStatusText">Connecting...</span><span class="live-badge" id="liveBadge">LIVE</span></div>
+        <div>🕐 শেষ আপডেট: <span id="lastUpdateTime" style="color:#fbbf24; font-weight:600;">--:--:--</span></div>
+        <div>📡 অটো রিফ্রেশ: <span id="autoRefreshStatus" style="color:#10b981;">WebSocket Active</span></div>
+        <div>🎯 এক্টিভ মডেল: <span id="activeModelDisplay" style="color:#fbbf24;">--</span></div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card"><h4>📊 মোট রেজাল্ট</h4><div class="stat-value" id="totalResults">0</div></div>
+        <div class="stat-card"><h4>📈 মোট প্রেডিকশন</h4><div class="stat-value" id="totalPredictions">0</div></div>
+        <div class="stat-card"><h4>🎯 AI Accuracy</h4><div class="stat-value" id="aiAccuracy">--<span style="font-size:16px;">%</span></div></div>
+        <div class="stat-card"><h4>🟢 সার্ভার স্ট্যাটাস</h4><div class="stat-value" id="serverStatus">🟢 Online</div></div>
+    </div>
+
+    <!-- Dual Model Pattern AI Main Card -->
+    <div class="pattern-card-main">
+        <div class="card-header">🎯 DUAL MODEL AI DASHBOARD (v11.0)</div>
+        <div class="card-body">
+            <div class="pattern-info">
+                <div class="pattern-info-item">
+                    <div class="pattern-info-label">📐 শেষ ৩টি রেজাল্ট</div>
+                    <div class="pattern-info-value" id="last3Results">-- → -- → --</div>
+                </div>
+                <div class="pattern-info-item">
+                    <div class="pattern-info-label">🔍 প্যাটার্ন স্ট্যাটাস</div>
+                    <div class="pattern-info-value" id="patternStatus">Checking...</div>
+                </div>
+                <div class="pattern-info-item">
+                    <div class="pattern-info-label">🎯 এক্টিভ মডেল</div>
+                    <div class="pattern-info-value" id="protectionTypeDebug">--</div>
+                </div>
+            </div>
+
+            <!-- User Preference Selector (NEW v11.0) -->
+            <div class="preference-selector">
+                <div class="preference-title">🎮 সিলেক্ট প্রেডিকশন মডেল</div>
+                <div class="preference-options">
+                    <div class="pref-option pref-continue">
+                        <input type="radio" name="preference" id="prefContinue" value="CONTINUE">
+                        <label for="prefContinue">🔵 CONTINUE Only (শেষ রেজাল্ট)</label>
+                    </div>
+                    <div class="pref-option pref-switch">
+                        <input type="radio" name="preference" id="prefSwitch" value="SWITCH">
+                        <label for="prefSwitch">🟡 SWITCH Only (আগের রেজাল্ট)</label>
+                    </div>
+                    <div class="pref-option pref-auto">
+                        <input type="radio" name="preference" id="prefAuto" value="AUTO" checked>
+                        <label for="prefAuto">🤖 AUTO (সিলেক্টর সিদ্ধান্ত নেবে)</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Models Status (NEW v11.0) -->
+            <div class="models-status" id="modelsStatus">
+                <div class="models-title">🔬 ডুয়াল মডেলের বর্তমান স্ট্যাটাস</div>
+                <div class="model-cards">
+                    <div class="model-card continue-card" id="continueModelCard">
+                        <div class="model-name">🔵 CONTINUE MODEL</div>
+                        <div class="model-value continue" id="continueModelValue">--</div>
+                        <div class="model-accuracy" id="continueModelAccuracy">Accuracy: 0%</div>
+                        <div class="model-status" id="continueModelStatus">⚪ Inactive</div>
+                    </div>
+                    <div class="model-card switch-card" id="switchModelCard">
+                        <div class="model-name">🟡 SWITCH MODEL</div>
+                        <div class="model-value switch" id="switchModelValue">--</div>
+                        <div class="model-accuracy" id="switchModelAccuracy">Accuracy: 0%</div>
+                        <div class="model-status" id="switchModelStatus">⚪ Inactive</div>
+                    </div>
+                </div>
+                <div class="selector-decision" id="selectorDecision">
+                    🎯 সিলেক্টর: প্যাটার্নের অপেক্ষায়...
+                </div>
+            </div>
+
+            <!-- Dynamic Values Display -->
+            <div class="dynamic-values-row" id="dynamicValuesRow" style="display: none;">
+                <div style="margin-bottom: 10px; font-size: 12px; opacity: 0.7;">🔄 ডাইনামিক ভ্যালু (প্রতি রেজাল্টের পর আপডেট)</div>
+                <div>
+                    <span class="dynamic-value-item">
+                        <span class="dynamic-label">🟢 CONTINUE =</span>
+                        <span class="dynamic-value continue" id="continueDisplayValue">--</span>
+                    </span>
+                    <span class="dynamic-value-item">
+                        <span class="dynamic-label">🟡 SWITCH =</span>
+                        <span class="dynamic-value switch" id="switchDisplayValue">--</span>
+                    </span>
+                </div>
+                <div style="font-size: 10px; opacity: 0.5; margin-top: 10px;">⚠️ ভুল প্রেডিকশনের পর নতুন রেজাল্ট দিয়ে ভ্যালু আপডেট হয়</div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.3); border-radius: 16px; padding: 15px; margin-bottom: 20px;">
+                <table style="width: 100%; font-size: 14px;">
+                    <tr>
+                        <td style="padding: 8px;"><strong>📌 প্যাটার্ন (ট্রিগার):</strong></td>
+                        <td style="padding: 8px;" id="debugPattern">--</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;"><strong>🎲 প্রেডিকশন:</strong></td>
+                        <td style="padding: 8px; font-size: 24px; font-weight: bold; color: #fbbf24;" id="debugPrediction">--</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;"><strong>📊 কনফিডেন্স:</strong></td>
+                        <td style="padding: 8px;" id="debugConfidence">--%</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;"><strong>🎯 এক্টিভ মডেল:</strong></td>
+                        <td style="padding: 8px;" id="debugActiveModel">--</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;"><strong>📝 বিবরণ:</strong></td>
+                        <td style="padding: 8px;" id="debugDescription">--</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="prediction-display">
+                <div style="font-size:13px; opacity:0.9;">🎲 AI FINAL PREDICTION</div>
+                <div class="prediction-group" id="fallbackPrediction">--</div>
+                <div id="fallbackReason" style="font-size:12px; margin-top:8px; opacity:0.8;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Available Patterns Reference (UPDATED for v11.0) -->
+    <div class="pattern-card-main" style="margin-bottom: 25px;">
+        <div class="card-header">📚 উপলব্ধ 3-স্টেপ প্যাটার্নসমূহ (৬টি - ট্রিগার ONLY)</div>
+        <div class="card-body">
+            <div class="patterns-grid" id="patternsGrid">
+                <!-- Will be populated by JavaScript -->
+            </div>
+            <div style="margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 10px; font-size: 12px; text-align: center;">
+                <strong>💡 v11.0 ডুয়াল মডেল সিস্টেমের নিয়ম:</strong><br>
+                🔹 <span style="color:#fbbf24;">প্যাটার্ন শনাক্ত</span> → <strong style="color:#4ade80;">DUAL MODELS ACTIVE</strong><br>
+                🔵 <span style="color:#4ade80;">CONTINUE মডেল</span> = শেষ রেজাল্ট | 🟡 <span style="color:#fbbf24;">SWITCH মডেল</span> = আগের রেজাল্ট<br>
+                🎯 <span style="color:#a78bfa;">সিলেক্টর মডেল</span> = শেখে কোন মডেল ভালো কাজ করে<br>
+                👤 <span style="color:#fbbf24;">ইউজার প্রেফারেন্স</span> = CONTINUE only / SWITCH only / AUTO<br>
+                🔄 <span style="color:#ef4444;">ভুল হলে</span> → একই মডেল চালু থাকে, ভ্যালু আপডেট হয়<br>
+                ✅ <span style="color:#10b981;">সঠিক হলে</span> → WAIT মোডে ফিরে যায়<br>
+                ⏳ <strong style="color:#fbbf24;">WAIT মোড</strong> - প্যাটার্ন শনাক্তের অপেক্ষায়
+            </div>
+        </div>
+    </div>
+
+    <!-- Console -->
+    <div class="console-log">
+        <div class="console-header">
+            <span>📋 ডিবাগ কনসোল (রিয়েল-টাইম আপডেট)</span>
+            <button class="clear-console" id="clearConsoleBtn2">Clear</button>
+        </div>
+        <div class="console-content" id="consoleContent">
+            <div class="console-line info">🔍 ড্যাশবোর্ড লোড হয়েছে (v11.0 - Dual Model AI)। WebSocket সংযোগ হচ্ছে...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_BASE = '/api';
+    let ws = null;
+    let lastDynamicValues = { continue: null, switch: null };
+
+    // Valid patterns for v11.0 (TRIGGER only)
+    const VALID_PATTERNS = [
+        "LOW→HIGH→MEDIUM",
+        "HIGH→LOW→MEDIUM",
+        "MEDIUM→LOW→HIGH",
+        "MEDIUM→HIGH→LOW",
+        "LOW→MEDIUM→HIGH",
+        "HIGH→MEDIUM→LOW"
+    ];
+
+    const PATTERN_MAPPING = {
+        "LOW→HIGH→MEDIUM": { desc: "LOW থেকে HIGH হয়ে MEDIUM এ এসেছে (ট্রিগার)" },
+        "HIGH→LOW→MEDIUM": { desc: "HIGH থেকে LOW হয়ে MEDIUM এ এসেছে (ট্রিগার)" },
+        "MEDIUM→LOW→HIGH": { desc: "MEDIUM থেকে LOW হয়ে HIGH এ এসেছে (ট্রিগার)" },
+        "MEDIUM→HIGH→LOW": { desc: "MEDIUM থেকে HIGH হয়ে LOW এ এসেছে (ট্রিগার)" },
+        "LOW→MEDIUM→HIGH": { desc: "LOW থেকে MEDIUM হয়ে HIGH এ এসেছে (ট্রিগার)" },
+        "HIGH→MEDIUM→LOW": { desc: "HIGH থেকে MEDIUM হয়ে LOW এ এসেছে (ট্রিগার)" }
+    };
+
+    function addLog(msg, type='info') {
+        const div = document.getElementById('consoleContent');
+        const time = new Date().toLocaleTimeString();
+        const line = document.createElement('div');
+        line.className = `console-line ${type}`;
+        line.innerHTML = `[${time}] ${msg}`;
+        div.appendChild(line);
+        line.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        while(div.children.length > 300) div.removeChild(div.firstChild);
+    }
+
+    function loadPatternsGrid() {
+        const grid = document.getElementById('patternsGrid');
+        if (!grid) return;
+        
+        grid.innerHTML = VALID_PATTERNS.map(pattern => {
+            const mapping = PATTERN_MAPPING[pattern];
+            return `
+                <div class="pattern-ref-card">
+                    <div class="pattern-ref-text">📐 ${pattern}</div>
+                    <div class="pattern-ref-actions">🎯 ট্রিগার প্যাটার্ন - ডুয়াল মডেল সক্রিয় করে</div>
+                    <div class="pattern-ref-actions" style="font-size:10px;">📝 ${mapping.desc}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function checkPatternMatch(last3) {
+        if (!last3 || last3.length !== 3) return false;
+        const patternString = `${last3[0]}→${last3[1]}→${last3[2]}`;
+        return VALID_PATTERNS.includes(patternString);
+    }
+
+    function animateValueUpdate(elementId, newValue) {
+        const element = document.getElementById(elementId);
+        if (element && element.textContent !== newValue) {
+            element.classList.add('update-animation');
+            setTimeout(() => element.classList.remove('update-animation'), 500);
+        }
+    }
+
+    function updateDynamicValuesDisplay(continueVal, switchVal, isActive) {
+        const dynamicRow = document.getElementById('dynamicValuesRow');
+        const continueDisplay = document.getElementById('continueDisplayValue');
+        const switchDisplay = document.getElementById('switchDisplayValue');
+        
+        if (isActive && continueVal && switchVal) {
+            if (dynamicRow) dynamicRow.style.display = 'block';
+            if (continueDisplay) {
+                if (lastDynamicValues.continue !== continueVal) {
+                    animateValueUpdate('continueDisplayValue', continueVal);
+                }
+                continueDisplay.textContent = continueVal;
+            }
+            if (switchDisplay) {
+                if (lastDynamicValues.switch !== switchVal) {
+                    animateValueUpdate('switchDisplayValue', switchVal);
+                }
+                switchDisplay.textContent = switchVal;
+            }
+            lastDynamicValues = { continue: continueVal, switch: switchVal };
+        } else {
+            if (dynamicRow) dynamicRow.style.display = 'none';
+        }
+    }
+
+    function updateModelsStatusDisplay(modelsStatus) {
+        if (!modelsStatus) return;
+        
+        const continueValue = document.getElementById('continueModelValue');
+        const switchValue = document.getElementById('switchModelValue');
+        const continueAccuracy = document.getElementById('continueModelAccuracy');
+        const switchAccuracy = document.getElementById('switchModelAccuracy');
+        const continueStatus = document.getElementById('continueModelStatus');
+        const switchStatus = document.getElementById('switchModelStatus');
+        const continueCard = document.getElementById('continueModelCard');
+        const switchCard = document.getElementById('switchModelCard');
+        const selectorDecision = document.getElementById('selectorDecision');
+        
+        if (continueValue) continueValue.textContent = modelsStatus.continue?.currentValue || '--';
+        if (switchValue) switchValue.textContent = modelsStatus.switch?.currentValue || '--';
+        if (continueAccuracy) continueAccuracy.textContent = `Accuracy: ${modelsStatus.continue?.accuracy?.toFixed(1) || 0}%`;
+        if (switchAccuracy) switchAccuracy.textContent = `Accuracy: ${modelsStatus.switch?.accuracy?.toFixed(1) || 0}%`;
+        
+        if (continueStatus) {
+            const isActive = modelsStatus.continue?.isActive;
+            continueStatus.innerHTML = isActive ? '<span class="status-badge-model status-active"></span> Active' : '<span class="status-badge-model status-inactive"></span> Inactive';
+        }
+        if (switchStatus) {
+            const isActive = modelsStatus.switch?.isActive;
+            switchStatus.innerHTML = isActive ? '<span class="status-badge-model status-active"></span> Active' : '<span class="status-badge-model status-inactive"></span> Inactive';
+        }
+        
+        // Highlight active model card
+        const activeModel = modelsStatus.activeModel;
+        if (continueCard) {
+            if (activeModel === 'CONTINUE') continueCard.classList.add('active-card');
+            else continueCard.classList.remove('active-card');
+        }
+        if (switchCard) {
+            if (activeModel === 'SWITCH') switchCard.classList.add('active-card');
+            else switchCard.classList.remove('active-card');
+        }
+        
+        if (selectorDecision && modelsStatus.selectorDecision) {
+            selectorDecision.innerHTML = `🎯 ${modelsStatus.selectorDecision}`;
+        }
+    }
+
+    async function updateUserPreference(preference) {
+        try {
+            const response = await fetch(`${API_BASE}/user-preference`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ preference: preference })
+            });
+            const data = await response.json();
+            if (data.success) {
+                addLog(`✅ ইউজার প্রেফারেন্স পরিবর্তন করা হয়েছে: ${preference}`, 'success');
+                await fetchAndUpdate();
+                return true;
+            }
+        } catch (error) {
+            addLog(`❌ প্রেফারেন্স আপডেট করতে ব্যর্থ: ${error.message}`, 'error');
+        }
+        return false;
+    }
+
+    async function fetchAndUpdate() {
+        try {
+            // Fetch current prediction
+            const res = await fetch(`${API_BASE}/current-prediction`);
+            const data = await res.json();
+            
+            if (data && data.prediction) {
+                const p = data.prediction;
+                document.getElementById('lastUpdateTime').textContent = new Date().toLocaleTimeString();
+                
+                // Update debug panel
+                document.getElementById('debugPattern').innerHTML = p.pattern3step || p.pattern || '--';
+                document.getElementById('debugPrediction').innerHTML = p.predictedGroup || p.ensemble || '--';
+                document.getElementById('debugConfidence').innerHTML = `${p.confidence || p.ensembleConfidence || 0}%`;
+                document.getElementById('debugDescription').innerHTML = p.description || '--';
+                document.getElementById('protectionTypeDebug').innerHTML = p.activeModel || p.protectionType || '--';
+                document.getElementById('debugActiveModel').innerHTML = p.activeModel || p.protectionType || '--';
+                document.getElementById('activeModelDisplay').innerHTML = p.activeModel || p.protectionType || 'WAIT';
+                
+                // Update dynamic values display
+                const isPredictionActive = p.isPredictionModeActive || (p.status === 'PREDICTION_READY' && !p.waitingForData);
+                const continueVal = p.dynamicContinueValue || p.continueValue || p.continueModelPrediction;
+                const switchVal = p.dynamicSwitchValue || p.switchValue || p.switchModelPrediction;
+                updateDynamicValuesDisplay(continueVal, switchVal, isPredictionActive);
+                
+                // Update models status
+                if (p.modelsStatus) {
+                    updateModelsStatusDisplay(p.modelsStatus);
+                }
+                
+                // Update selector decision
+                const selectorDecisionEl = document.getElementById('selectorDecision');
+                if (selectorDecisionEl && p.decisionInfo) {
+                    selectorDecisionEl.innerHTML = `🎯 সিলেক্টর: ${p.decisionInfo.reason || 'ডিসিশন নিচ্ছে...'}`;
+                }
+                
+                // Update prediction display
+                const predictedGroup = p.predictedGroup || p.ensemble || 'WAITING';
+                const confidence = p.confidence || p.ensembleConfidence || 0;
+                document.getElementById('fallbackPrediction').innerHTML = `${getGroupIcon(predictedGroup)} ${predictedGroup}`;
+                
+                if (p.waitingForData || p.status === 'WAITING') {
+                    document.getElementById('fallbackReason').innerHTML = `⏳ WAIT MODE: কোনো বৈধ প্যাটার্ন শনাক্ত হয়নি। পরবর্তী রেজাল্টের অপেক্ষায়...`;
+                    document.getElementById('patternStatus').innerHTML = '<span class="pattern-wait">⏳ WAIT MODE - প্যাটার্ন শনাক্ত হয়নি</span>';
+                } else if (isPredictionActive) {
+                    const userPref = p.userPreference || 'AUTO';
+                    document.getElementById('fallbackReason').innerHTML = `✅ ডুয়াল মডেল সক্রিয়! এক্টিভ মডেল: ${p.activeModel || p.protectionType || 'CONTINUE'}<br>🔵 CONTINUE মডেল: ${continueVal || '?'} | 🟡 SWITCH মডেল: ${switchVal || '?'}<br>👤 ইউজার প্রেফারেন্স: ${userPref}`;
+                    document.getElementById('patternStatus').innerHTML = '<span class="pattern-active">🎯 ডুয়াল মডেল ACTIVE - সিলেক্টর সিদ্ধান্ত নিচ্ছে</span>';
+                } else {
+                    document.getElementById('fallbackReason').innerHTML = `✅ প্যাটার্ন ম্যাচ করেছে! ডুয়াল মডেল সক্রিয় হচ্ছে...`;
+                    document.getElementById('patternStatus').innerHTML = '<span class="pattern-match">✅ প্যাটার্ন ম্যাচ করেছে - ডুয়াল মডেল সক্রিয়</span>';
+                }
+            }
+            
+            // Fetch last 3 results
+            const resultsRes = await fetch(`${API_BASE}/results?limit=5`);
+            const resultsData = await resultsRes.json();
+            const results = resultsData.data || [];
+            
+            if (results && results.length >= 3) {
+                const last3 = results.slice(0, 3).map(r => r.group_name);
+                const patternString = `${last3[0]} → ${last3[1]} → ${last3[2]}`;
+                document.getElementById('last3Results').innerHTML = `<strong>${patternString}</strong>`;
+            } else if (results) {
+                const needed = 3 - results.length;
+                document.getElementById('last3Results').innerHTML = `<strong>-- → -- → --</strong> <span style="color:#fbbf24;">(আরও ${needed}টি রেজাল্ট প্রয়োজন)</span>`;
+            }
+            
+            // Fetch stats
+            const statsRes = await fetch(`${API_BASE}/stats`);
+            const stats = await statsRes.json();
+            document.getElementById('totalResults').innerHTML = stats.totalRounds || 0;
+            document.getElementById('serverStatus').innerHTML = '🟢 Online';
+            
+            // Fetch predictions count
+            const predRes = await fetch(`${API_BASE}/predictions?limit=100`);
+            const predictions = await predRes.json();
+            document.getElementById('totalPredictions').innerHTML = Array.isArray(predictions) ? predictions.length : 0;
+            
+            // Fetch AI stats
+            const aiStatsRes = await fetch(`${API_BASE}/ai-stats`);
+            const aiStats = await aiStatsRes.json();
+            const accuracy = aiStats?.accuracy || 0;
+            document.getElementById('aiAccuracy').innerHTML = `${accuracy.toFixed(1)}%`;
+            
+            // Fetch models status separately
+            const modelsRes = await fetch(`${API_BASE}/models-status`);
+            const modelsData = await modelsRes.json();
+            if (modelsData.success && modelsData.modelsStatus) {
+                updateModelsStatusDisplay(modelsData.modelsStatus);
+            }
+            
+        } catch(e) {
+            addLog(`এরর: ${e.message}`, 'error');
+        }
+    }
+
+    function getGroupIcon(group) {
+        if (group === 'LOW') return '🔴';
+        if (group === 'MEDIUM') return '🟡';
+        if (group === 'HIGH') return '🟢';
+        return '⚪';
+    }
+
+    async function runAllTests() {
+        addLog('🚀 সম্পূর্ণ সিস্টেম ডায়াগনস্টিক শুরু (v11.0)...', 'info');
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+        addLog('📋 6টি 3-স্টেপ প্যাটার্ন (ট্রিগার):', 'info');
+        VALID_PATTERNS.forEach(p => addLog(`   📐 ${p}`, 'info'));
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+        addLog('🎯 v11.0 ডুয়াল মডেল সিস্টেম:', 'info');
+        addLog('   🔵 CONTINUE মডেল = শেষ রেজাল্ট', 'info');
+        addLog('   🟡 SWITCH মডেল = আগের রেজাল্ট', 'info');
+        addLog('   🎯 সিলেক্টর মডেল = শেখে কোনটি ভালো', 'info');
+        addLog('   👤 ইউজার প্রেফারেন্স = CONTINUE/SWITCH/AUTO', 'info');
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+        await fetchAndUpdate();
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+        addLog('✅ ডায়াগনস্টিক সম্পূর্ণ! Dual Model AI v11.0 সচল আছে।', 'success');
+    }
+
+    function testPrediction() { addLog('🎯 লাইভ প্রেডিকশন টেস্ট করা হচ্ছে (Dual Model)...', 'info'); fetchAndUpdate(); }
+    function forceRefresh() { addLog('🔄 সব ডাটা রিফ্রেশ করা হচ্ছে...', 'info'); fetchAndUpdate(); addLog('✅ ডাটা রিফ্রেশ সম্পূর্ণ', 'success'); }
+    function clearConsole() { document.getElementById('consoleContent').innerHTML = '<div class="console-line info">কনসোল ক্লিয়ার করা হয়েছে। রিয়েল-টাইম আপডেট সক্রিয় (v11.0)...</div>'; }
+
+    function setupWebSocket() {
+        const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${protocol}//${location.host}`);
+        
+        ws.onopen = () => {
+            document.getElementById('wsStatusDot').className = 'ws-status ws-connected';
+            document.getElementById('wsStatusText').innerHTML = 'Connected';
+            addLog('🔌 WebSocket সংযুক্ত - Dual Model AI রিয়েল-টাইম আপডেট সক্রিয়', 'success');
+        };
+        
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if(data.type === 'new_result') {
+                    addLog('🔄 রিয়েল-টাইম আপডেট: নতুন রেজাল্ট পেয়েছি, ডুয়াল মডেল চেক করা হচ্ছে...', 'info');
+                    fetchAndUpdate();
+                }
+            } catch(e) {}
+        };
+        
+        ws.onerror = () => {
+            document.getElementById('wsStatusDot').className = 'ws-status ws-disconnected';
+            document.getElementById('wsStatusText').innerHTML = 'Error';
+            addLog('⚠️ WebSocket এরর হয়েছে', 'warning');
+        };
+        
+        ws.onclose = () => {
+            document.getElementById('wsStatusDot').className = 'ws-status ws-disconnected';
+            document.getElementById('wsStatusText').innerHTML = 'Disconnected';
+            addLog('🔌 WebSocket সংযোগ বিচ্ছিন্ন - পুনরায় সংযোগ হচ্ছে...', 'warning');
+            setTimeout(setupWebSocket, 3000);
+        };
+    }
+
+    // Preference Event Listeners
+    document.getElementById('prefContinue').onchange = (e) => { if(e.target.checked) updateUserPreference('CONTINUE'); };
+    document.getElementById('prefSwitch').onchange = (e) => { if(e.target.checked) updateUserPreference('SWITCH'); };
+    document.getElementById('prefAuto').onchange = (e) => { if(e.target.checked) updateUserPreference('AUTO'); };
+    
+    // Other Event Listeners
+    document.getElementById('testAllBtn').onclick = runAllTests;
+    document.getElementById('fetchStatusBtn').onclick = () => { fetchAndUpdate(); addLog('📡 স্ট্যাটাস নেওয়া হয়েছে', 'info'); };
+    document.getElementById('testPredictionBtn').onclick = testPrediction;
+    document.getElementById('forceRefreshBtn').onclick = forceRefresh;
+    document.getElementById('clearConsoleBtn').onclick = clearConsole;
+    document.getElementById('clearConsoleBtn2').onclick = clearConsole;
+    
+    // Initialize
+    loadPatternsGrid();
+    setupWebSocket();
+    setTimeout(runAllTests, 1000);
+    setInterval(fetchAndUpdate, 10000);
+</script>
+</body>
+</html>
