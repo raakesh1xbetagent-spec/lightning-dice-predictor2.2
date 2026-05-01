@@ -1,1 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="Lightning Dice Predictor - Dual Model 3-Step Pattern AI System">
+    <title>Lightning Dice Predictor - Dual Model AI v11.0</title>
+    <link rel="stylesheet" href="/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Additional styles for v11.0 Dual Model UI */
+        .preference-selector {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.6), rgba(30, 27, 75, 0.6));
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+        
+        .preference-title {
+            font-size: 13px;
+            opacity: 0.7;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        
+        .preference-options {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .pref-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 40px;
+            background: rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .pref-option:hover {
+            background: rgba(251, 191, 36, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .pref-option input {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            accent-color: #fbbf24;
+        }
+        
+        .pref-option label {
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .pref-continue label { color: #4ade80; }
+        .pref-switch label { color: #fbbf24; }
+        .pref-auto label { color: #a78bfa; }
+        
+        .models-status {
+            background: rgba(0,0,0,0.3);
+            border-radius: 16px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .models-title {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        
+        .model-cards {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .model-card {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .model-card.continue-card { border-left: 3px solid #4ade80; }
+        .model-card.switch-card { border-left: 3px solid #fbbf24; }
+        .model-card.active-card { background: rgba(251, 191, 36, 0.15); }
+        
+        .model-name {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .model-value {
+            font-size: 24px;
+            font-weight: 800;
+            margin: 5px 0;
+        }
+        
+        .model-value.continue { color: #4ade80; }
+        .model-value.switch { color: #fbbf24; }
+        
+        .model-accuracy {
+            font-size: 10px;
+            opacity: 0.7;
+        }
+        
+        .model-status-badge {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-active { background: #4ade80; box-shadow: 0 0 5px #4ade80; }
+        .status-inactive { background: #6b7280; }
+        
+        .selector-decision {
+            background: rgba(251, 191, 36, 0.15);
+            border-radius: 12px;
+            padding: 10px;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <span class="lightning-icon">⚡</span>
+                <h1>Lightning Dice Predictor</h1>
+                <span class="version-badge">v11.0 - Dual Model AI</span>
+            </div>
+            <div class="header-buttons">
+                <button class="debug-btn" id="debugBtn" onclick="window.open('/debug.html', '_blank')">🔧 Debug Dashboard</button>
+                <div class="status-badge" id="connectionStatus">
+                    <span class="status-dot"></span>
+                    <span id="statusText">Connecting...</span>
+                </div>
+            </div>
+        </header>
 
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Rounds</div>
+                <div class="stat-value" id="totalRounds">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Average Result</div>
+                <div class="stat-value" id="avgResult">0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Most Active Group</div>
+                <div class="stat-value" id="mostActiveGroup">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Lightning Boost</div>
+                <div class="stat-value" id="lightningBoost">0%</div>
+            </div>
+        </div>
+
+        <!-- ============ DUAL MODEL PREDICTION SECTION (v11.0) ============ -->
+        <div class="prediction-section">
+            <h2>🎯 DUAL MODEL 3-STEP PATTERN RECOGNITION SYSTEM</h2>
+            
+            <div class="pattern-info-bar">
+                <div class="info-item">
+                    <span class="info-label">📐 Last 3 Results:</span>
+                    <span class="info-value" id="last3Results">-- → -- → --</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">🔍 Pattern Status:</span>
+                    <span class="info-value" id="patternStatus">Checking...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">🎯 Active Model:</span>
+                    <span class="info-value" id="activeModelDisplay">--</span>
+                </div>
+            </div>
+
+            <!-- NEW: User Preference Selector -->
+            <div class="preference-selector">
+                <div class="preference-title">🎮 SELECT PREDICTION MODEL</div>
+                <div class="preference-options">
+                    <div class="pref-option pref-continue">
+                        <input type="radio" name="preference" id="prefContinue" value="CONTINUE">
+                        <label for="prefContinue">🔵 CONTINUE Only (Last Result)</label>
+                    </div>
+                    <div class="pref-option pref-switch">
+                        <input type="radio" name="preference" id="prefSwitch" value="SWITCH">
+                        <label for="prefSwitch">🟡 SWITCH Only (Previous Result)</label>
+                    </div>
+                    <div class="pref-option pref-auto">
+                        <input type="radio" name="preference" id="prefAuto" value="AUTO" checked>
+                        <label for="prefAuto">🤖 AUTO (Selector Decides)</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pattern-table">
+                <div class="pattern-header">
+                    <div class="col-pattern">3-Step Pattern (Trigger)</div>
+                    <div class="col-protection">Active Model</div>
+                    <div class="col-prediction">Prediction</div>
+                    <div class="col-confidence">Confidence</div>
+                    <div class="col-description">Description</div>
+                </div>
+                
+                <div class="pattern-row" id="patternRow">
+                    <div class="col-pattern" id="patternName">-- → -- → --</div>
+                    <div class="col-protection" id="protectionType">--</div>
+                    <div class="col-prediction" id="predictionGroup">--</div>
+                    <div class="col-confidence" id="predictionConfidence">--%</div>
+                    <div class="col-description" id="patternDescription">--</div>
+                </div>
+            </div>
+
+            <!-- NEW: Both Models Status Display -->
+            <div class="models-status" id="modelsStatus">
+                <div class="models-title">🔬 DUAL MODEL STATUS</div>
+                <div class="model-cards">
+                    <div class="model-card continue-card" id="continueModelCard">
+                        <div class="model-name">🔵 CONTINUE MODEL</div>
+                        <div class="model-value continue" id="continueModelValue">--</div>
+                        <div class="model-accuracy" id="continueModelAccuracy">Accuracy: 0%</div>
+                        <div class="model-status" id="continueModelStatus">⚪ Inactive</div>
+                    </div>
+                    <div class="model-card switch-card" id="switchModelCard">
+                        <div class="model-name">🟡 SWITCH MODEL</div>
+                        <div class="model-value switch" id="switchModelValue">--</div>
+                        <div class="model-accuracy" id="switchModelAccuracy">Accuracy: 0%</div>
+                        <div class="model-status" id="switchModelStatus">⚪ Inactive</div>
+                    </div>
+                </div>
+                <div class="selector-decision" id="selectorDecision">
+                    🎯 Selector: Waiting for pattern...
+                </div>
+            </div>
+
+            <div class="final-prediction-card">
+                <div class="final-header">
+                    <span class="final-icon">🏆</span>
+                    <span class="final-title">AI FINAL PREDICTION</span>
+                    <span class="final-vote" id="predictionType">(Model)</span>
+                </div>
+                <div class="final-group" id="finalGroup">
+                    <span class="final-group-icon" id="finalIcon">🎯</span>
+                    <span class="final-group-name" id="finalName">--</span>
+                    <span class="final-group-range" id="finalRange">--</span>
+                </div>
+                <div class="final-confidence">
+                    <div class="confidence-meter">
+                        <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
+                    </div>
+                    <span class="confidence-text" id="finalConfidence">0%</span>
+                </div>
+                <div class="final-explanation" id="finalExplanation">Waiting for 3 results to analyze pattern...</div>
+                <div class="final-weights" id="finalWeights"></div>
+            </div>
+        </div>
+
+        <!-- ============ AVAILABLE PATTERNS REFERENCE (UPDATED for v11.0) ============ -->
+        <div class="patterns-reference">
+            <div class="section-header">
+                <h2>📚 Available 3-Step Patterns (6 Total - TRIGGER Only)</h2>
+            </div>
+            <div class="patterns-grid">
+                <div class="pattern-card">
+                    <div class="pattern-3step">LOW → HIGH → MEDIUM</div>
+                    <div class="pattern-actions">🎯 TRIGGER only - activates dual models</div>
+                </div>
+                <div class="pattern-card">
+                    <div class="pattern-3step">HIGH → LOW → MEDIUM</div>
+                    <div class="pattern-actions">🎯 TRIGGER only - activates dual models</div>
+                </div>
+                <div class="pattern-card">
+                    <div class="pattern-3step">MEDIUM → LOW → HIGH</div>
+                    <div class="pattern-actions">🎯 TRIGGER only - activates dual models</div>
+                </div>
+                <div class="pattern-card">
+                    <div class="pattern-3step">MEDIUM → HIGH → LOW</div>
+                    <div class="pattern-actions">🎯 TRIGGER only - activates dual models</div>
+                </div>
+                <div class="pattern-card">
+                    <div class="pattern-3step">LOW → MEDIUM → HIGH</div>
+                    <div class="pattern-actions">🎯 TRIGGER only - activates dual models</div>
+                </div>
+                <div class="pattern-card">
+                    <div class="pattern-3step">HIGH → MEDIUM → LOW</div>
+                    <div class="pattern-actions">🎯 TRIGGER only - activates dual models</div>
+                </div>
+            </div>
+            <div class="pattern-note">
+                💡 <strong>How it works (v11.0 Dual Model System):</strong><br>
+                🔹 <strong>Pattern Detection:</strong> When one of the 6 patterns is detected, DUAL MODELS ACTIVATE.<br>
+                🔹 <strong>🔵 CONTINUE Model:</strong> Always predicts LAST result (updates dynamically)<br>
+                🔹 <strong>🟡 SWITCH Model:</strong> Always predicts PREVIOUS result (updates dynamically)<br>
+                🔹 <strong>🎯 Selector Model:</strong> Learns which model works best for each pattern<br>
+                🔹 <strong>👤 User Preference:</strong> You can choose CONTINUE only, SWITCH only, or AUTO<br>
+                🔹 <strong>Wrong Prediction:</strong> Same model continues with updated values<br>
+                🔹 <strong>Correct Prediction:</strong> Prediction mode ends, returns to WAIT mode<br>
+                ⏳ <strong>WAIT mode:</strong> No pattern detected yet - waiting for 3 results
+            </div>
+        </div>
+
+        <div class="group-stats">
+            <div class="group-stat low-group">
+                <div class="group-header">
+                    <span class="group-icon">🔴</span>
+                    <span class="group-title">LOW</span>
+                    <span class="group-range">(3-9)</span>
+                </div>
+                <div class="group-probability" id="lowProb">0%</div>
+                <div class="group-trend" id="lowTrend">-</div>
+            </div>
+            <div class="group-stat medium-group">
+                <div class="group-header">
+                    <span class="group-icon">🟡</span>
+                    <span class="group-title">MEDIUM</span>
+                    <span class="group-range">(10-11)</span>
+                </div>
+                <div class="group-probability" id="mediumProb">0%</div>
+                <div class="group-trend" id="mediumTrend">-</div>
+            </div>
+            <div class="group-stat high-group">
+                <div class="group-header">
+                    <span class="group-icon">🟢</span>
+                    <span class="group-title">HIGH</span>
+                    <span class="group-range">(12-18)</span>
+                </div>
+                <div class="group-probability" id="highProb">0%</div>
+                <div class="group-trend" id="highTrend">-</div>
+            </div>
+        </div>
+
+        <div class="history-section">
+            <div class="section-header">
+                <h2>📋 PREDICTION HISTORY</h2>
+                <button class="refresh-btn" id="refreshBtn">🔄 Refresh</button>
+            </div>
+            <div class="table-container">
+                <table class="history-table" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Dice</th>
+                            <th>Total</th>
+                            <th>3-Step Pattern (Trigger)</th>
+                            <th>Model Used</th>
+                            <th>Prediction</th>
+                            <th>Result</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <tr><td colspan="7">Loading history......</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination-controls">
+                <button class="pagination-btn" id="prevPageBtn" disabled>◀ Previous</button>
+                <span class="pagination-info" id="paginationInfo">Page 1 of 1</span>
+                <button class="pagination-btn" id="nextPageBtn" disabled>Next ▶</button>
+            </div>
+        </div>
+
+        <div class="recent-section">
+            <div class="section-header">
+                <h2>📊 Recent Results</h2>
+            </div>
+            <div class="results-grid" id="resultsGrid">
+                <div class="loading">Loading results...</div>
+            </div>
+        </div>
+
+        <div class="stats-section collapsible-section">
+            <div class="stats-header" id="statsHeader">
+                <h2>📈 Number Statistics</h2>
+                <span class="toggle-icon" id="toggleIcon">▶</span>
+            </div>
+            <div class="stats-content" id="statsContent" style="display: none;">
+                <div class="table-container">
+                    <table class="stats-table" id="statsTable">
+                        <thead>
+                            <tr><th>Number</th><th>Group</th><th>Frequency</th><th>Percentage</th><th>Last Seen</th></tr>
+                        </thead>
+                        <tbody id="statsTableBody">
+                            <tr><td colspan="5">Loading statistics......</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="auto-refresh-control">
+            <label class="switch">
+                <input type="checkbox" id="autoRefreshToggle" checked>
+                <span class="slider round"></span>
+            </label>
+            <span>Auto Refresh (3s)</span>
+            <span class="refresh-timer" id="refreshTimer">3s</span>
+        </div>
+    </div>
+
+    <script src="/script.js"></script>
+</body>
+</html>
