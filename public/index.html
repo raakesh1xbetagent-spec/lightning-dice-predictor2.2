@@ -3,776 +3,830 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="description" content="Lightning Dice Predictor - Dual Model 3-Step Pattern AI System v11.1">
-    <title>Lightning Dice Predictor - Dual Model AI v11.1</title>
-    <link rel="stylesheet" href="/style.css">
+    <meta name="description" content="Lightning Dice Predictor - Dual Model AI System v11.2">
+    <title>Lightning Dice Predictor | Dual Model AI v11.2</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* v11.1 Additional Styles - Sub-Pattern Alert & Modern UI */
-        .preference-selector {
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 27, 75, 0.8));
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 20px 25px;
-            margin-bottom: 25px;
-            border: 1px solid rgba(251, 191, 36, 0.4);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
-        .preference-title {
-            font-size: 14px;
-            letter-spacing: 2px;
-            margin-bottom: 15px;
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 20% 30%, #0a0a2a, #050515);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
         }
-        
-        .preference-options {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            flex-wrap: wrap;
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
         }
-        
-        .pref-option {
-            padding: 10px 20px;
-            border-radius: 50px;
-            background: rgba(0,0,0,0.4);
-            transition: all 0.3s ease;
-        }
-        
-        .pref-option:hover {
-            transform: translateY(-3px);
-            background: rgba(251, 191, 36, 0.25);
-        }
-        
-        .pref-option input {
-            width: 18px;
-            height: 18px;
-            margin-right: 8px;
-        }
-        
-        .pref-option label {
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        
-        /* Sub-Pattern Alert Card - NEW v11.1 */
-        .subpattern-alert {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2));
-            border-left: 4px solid #8b5cf6;
-            border-radius: 16px;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            animation: slideIn 0.5s ease;
-            backdrop-filter: blur(10px);
-        }
-        
-        .subpattern-alert-header {
+
+        /* Glassmorphism Header */
+        .header {
+            background: rgba(15, 25, 45, 0.6);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        
-        .subpattern-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: #a78bfa;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .subpattern-title span {
-            font-size: 18px;
-        }
-        
-        .subpattern-close {
-            background: rgba(255,255,255,0.1);
-            border: none;
-            color: white;
-            cursor: pointer;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            transition: all 0.2s;
-        }
-        
-        .subpattern-close:hover {
-            background: rgba(239, 68, 68, 0.6);
-        }
-        
-        .subpattern-content {
-            display: flex;
-            justify-content: space-between;
             flex-wrap: wrap;
             gap: 15px;
-            margin-top: 10px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
         }
-        
-        .subpattern-item {
-            flex: 1;
-            background: rgba(0,0,0,0.3);
-            padding: 12px;
-            border-radius: 12px;
-            text-align: center;
-        }
-        
-        .subpattern-item.continue-item { border-bottom: 2px solid #4ade80; }
-        .subpattern-item.switch-item { border-bottom: 2px solid #fbbf24; }
-        
-        .subpattern-model {
-            font-size: 11px;
-            opacity: 0.7;
-            margin-bottom: 5px;
-        }
-        
-        .subpattern-value {
-            font-size: 18px;
-            font-weight: 700;
-            font-family: monospace;
-            letter-spacing: 1px;
-        }
-        
-        .subpattern-value.continue { color: #4ade80; }
-        .subpattern-value.switch { color: #fbbf24; }
-        
-        .subpattern-time {
-            font-size: 10px;
-            opacity: 0.5;
-            margin-top: 8px;
-        }
-        
-        /* Modern Pattern Info Bar */
-        .pattern-info-bar {
-            background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(0,0,0,0.3));
-            border-radius: 20px;
-            padding: 18px 25px;
-            margin-bottom: 25px;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 20px;
-            border: 1px solid rgba(251, 191, 36, 0.2);
-        }
-        
-        .info-item {
+
+        .logo {
             display: flex;
             align-items: center;
             gap: 12px;
-            background: rgba(0,0,0,0.3);
-            padding: 8px 18px;
-            border-radius: 40px;
         }
-        
-        .info-label {
-            font-size: 12px;
-            font-weight: 500;
-            letter-spacing: 1px;
+
+        .lightning-icon {
+            font-size: 36px;
+            animation: pulse 2s infinite;
         }
-        
-        .info-value {
-            font-size: 15px;
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); text-shadow: 0 0 5px gold; }
+            50% { transform: scale(1.1); text-shadow: 0 0 20px gold; }
+        }
+
+        h1 {
+            font-size: 26px;
             font-weight: 700;
-            color: #fbbf24;
-            font-family: monospace;
-        }
-        
-        /* Model Status Cards - Enhanced */
-        .models-status {
-            background: linear-gradient(135deg, rgba(0,0,0,0.4), rgba(0,0,0,0.2));
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 25px;
-            border: 1px solid rgba(251, 191, 36, 0.2);
-        }
-        
-        .models-title {
-            font-size: 13px;
-            letter-spacing: 2px;
-            margin-bottom: 15px;
-        }
-        
-        .model-cards {
-            display: flex;
-            justify-content: space-between;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-        
-        .model-card {
-            flex: 1;
-            text-align: center;
-            padding: 15px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 16px;
-            transition: all 0.3s ease;
-        }
-        
-        .model-card.continue-card { 
-            border-left: 3px solid #4ade80;
-            box-shadow: 0 0 15px rgba(74, 222, 128, 0.1);
-        }
-        .model-card.switch-card { 
-            border-left: 3px solid #fbbf24;
-            box-shadow: 0 0 15px rgba(251, 191, 36, 0.1);
-        }
-        .model-card.active-card { 
-            background: rgba(251, 191, 36, 0.2);
-            transform: scale(1.02);
-        }
-        
-        .model-name {
-            font-size: 12px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            letter-spacing: 1px;
-        }
-        
-        .model-value {
-            font-size: 32px;
-            font-weight: 800;
-            margin: 8px 0;
-        }
-        
-        .model-value.continue { color: #4ade80; text-shadow: 0 0 10px rgba(74,222,128,0.3); }
-        .model-value.switch { color: #fbbf24; text-shadow: 0 0 10px rgba(251,191,36,0.3); }
-        
-        .model-accuracy {
-            font-size: 10px;
-            opacity: 0.8;
-            background: rgba(0,0,0,0.3);
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 20px;
-        }
-        
-        .model-status {
-            font-size: 10px;
-            margin-top: 8px;
-        }
-        
-        .model-status .active-badge {
-            color: #4ade80;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        /* Final Prediction Card - Premium */
-        .final-prediction-card {
-            background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.08));
-            border-radius: 24px;
-            padding: 30px;
-            text-align: center;
-            border: 2px solid rgba(251, 191, 36, 0.5);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        
-        .final-group {
-            font-size: 56px;
-            margin: 20px 0;
-        }
-        
-        .final-group-name {
-            font-size: 56px;
-            font-weight: 800;
-            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            background: linear-gradient(135deg, #fff, #ffd700, #ff8c00);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        
-        .confidence-meter {
-            height: 12px;
-            background: rgba(255,255,255,0.15);
-            border-radius: 20px;
-            overflow: hidden;
-            margin: 15px 0;
-        }
-        
-        .confidence-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #fbbf24, #f59e0b);
-            border-radius: 20px;
-            transition: width 0.5s ease;
-        }
-        
-        /* Results Grid - Modern */
-        .results-grid {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            padding: 10px 0;
-        }
-        
-        .result-card {
-            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
-            border-radius: 16px;
-            padding: 12px 16px;
-            min-width: 80px;
-            text-align: center;
-            transition: all 0.2s;
-        }
-        
-        .result-card:hover {
-            transform: translateY(-3px);
-            background: rgba(255,255,255,0.15);
-        }
-        
-        .result-card.lightning {
-            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+
+        .version-badge {
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            padding: 5px 14px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 700;
             color: #1a1a2e;
         }
-        
-        .result-number {
-            font-size: 24px;
-            font-weight: 800;
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-size: 13px;
+            font-weight: 500;
+            border: 1px solid rgba(255,215,0,0.3);
         }
-        
-        /* Patterns Grid */
-        .patterns-grid {
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+            box-shadow: 0 0 5px #4ade80;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Stats Cards */
+        .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
         }
-        
-        .pattern-card {
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 22px;
+            text-align: center;
+            border: 1px solid rgba(255,215,0,0.15);
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255,215,0,0.4);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            opacity: 0.7;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 34px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Main Prediction Card */
+        .prediction-card {
+            background: linear-gradient(135deg, rgba(0,0,0,0.6), rgba(20,20,50,0.6));
+            backdrop-filter: blur(12px);
+            border-radius: 32px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,215,0,0.3);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+
+        .card-title {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 25px;
+            letter-spacing: 2px;
+        }
+
+        /* Pattern Info Row */
+        .pattern-row-info {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 20px;
+            padding: 18px 25px;
+            margin-bottom: 25px;
+        }
+
+        .pattern-info-chip {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(0,0,0,0.4);
+            padding: 8px 20px;
+            border-radius: 50px;
+        }
+
+        .pattern-info-label {
+            font-size: 12px;
+            opacity: 0.6;
+            letter-spacing: 1px;
+        }
+
+        .pattern-info-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffd700;
+            font-family: monospace;
+        }
+
+        /* Dual Model Cards Row */
+        .dual-models-row {
+            display: flex;
+            gap: 25px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .model-box {
+            flex: 1;
+            background: rgba(0,0,0,0.4);
+            border-radius: 24px;
+            padding: 22px;
+            text-align: center;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .model-box.continue-box {
+            border-left: 4px solid #4ade80;
+            box-shadow: 0 0 20px rgba(74,222,128,0.1);
+        }
+
+        .model-box.switch-box {
+            border-left: 4px solid #ffd700;
+            box-shadow: 0 0 20px rgba(255,215,0,0.1);
+        }
+
+        .model-box.active {
+            background: linear-gradient(135deg, rgba(74,222,128,0.15), rgba(0,0,0,0.5));
+            transform: scale(1.02);
+        }
+
+        .model-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .model-name {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .continue-name { color: #4ade80; }
+        .switch-name { color: #ffd700; }
+
+        .model-prediction {
+            font-size: 52px;
+            font-weight: 800;
+            margin: 15px 0;
+        }
+
+        .continue-prediction { color: #4ade80; text-shadow: 0 0 10px rgba(74,222,128,0.3); }
+        .switch-prediction { color: #ffd700; text-shadow: 0 0 10px rgba(255,215,0,0.3); }
+
+        .model-accuracy {
+            font-size: 12px;
+            background: rgba(0,0,0,0.5);
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 50px;
+            margin-top: 10px;
+        }
+
+        .model-status-badge {
+            font-size: 11px;
+            margin-top: 12px;
+        }
+
+        .status-active {
+            color: #4ade80;
+        }
+
+        .status-inactive {
+            color: #888;
+        }
+
+        /* Final Prediction Area */
+        .final-prediction-area {
+            background: linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,100,0,0.05));
+            border-radius: 28px;
+            padding: 30px;
+            text-align: center;
+            border: 2px solid rgba(255,215,0,0.4);
+            margin-top: 10px;
+        }
+
+        .final-label {
+            font-size: 14px;
+            letter-spacing: 3px;
+            opacity: 0.7;
+            margin-bottom: 15px;
+        }
+
+        .final-group {
+            font-size: 64px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 15px 0;
+        }
+
+        .confidence-wrapper {
+            background: rgba(0,0,0,0.5);
+            border-radius: 40px;
+            padding: 5px;
+            margin: 20px 0;
+        }
+
+        .confidence-bar {
+            height: 12px;
+            background: linear-gradient(90deg, #ffd700, #ff8c00);
+            border-radius: 40px;
+            transition: width 0.5s;
+        }
+
+        .confidence-text {
+            font-size: 22px;
+            font-weight: 700;
+            color: #ffd700;
+            margin-top: 10px;
+        }
+
+        .explanation-text {
+            font-size: 13px;
+            opacity: 0.8;
+            margin-top: 15px;
+            line-height: 1.5;
+        }
+
+        /* Sub Pattern Alert */
+        .sub-alert {
+            background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(59,130,246,0.15));
+            border-left: 4px solid #8b5cf6;
+            border-radius: 18px;
+            padding: 18px 22px;
+            margin-bottom: 25px;
+            display: none;
+            animation: slideIn 0.4s ease;
+        }
+
+        .sub-alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .sub-alert-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #a78bfa;
+        }
+
+        .sub-alert-close {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            padding: 4px 14px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .sub-alert-close:hover {
+            background: rgba(239,68,68,0.6);
+        }
+
+        .sub-alert-content {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .sub-alert-item {
+            flex: 1;
+            background: rgba(0,0,0,0.3);
+            border-radius: 14px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .sub-alert-item.continue-sub { border-bottom: 2px solid #4ade80; }
+        .sub-alert-item.switch-sub { border-bottom: 2px solid #ffd700; }
+
+        /* Patterns Reference */
+        .patterns-section {
+            background: rgba(0,0,0,0.4);
+            border-radius: 28px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .patterns-title {
+            font-size: 18px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .patterns-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+        }
+
+        .pattern-item {
             background: rgba(0,0,0,0.3);
             border-radius: 14px;
             padding: 12px 18px;
-            border-left: 3px solid #fbbf24;
-            transition: all 0.2s;
+            border-left: 3px solid #ffd700;
+            font-family: monospace;
+            font-size: 13px;
+            font-weight: 600;
+            color: #ffd700;
+            transition: 0.2s;
         }
-        
-        .pattern-card:hover {
+
+        .pattern-item:hover {
             transform: translateX(5px);
             background: rgba(0,0,0,0.5);
         }
-        
-        .pattern-3step {
-            font-family: monospace;
-            font-size: 14px;
-            font-weight: 700;
-            color: #fbbf24;
-            margin-bottom: 6px;
+
+        /* Group Stats */
+        .stats-group {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
         }
-        
-        /* Table Styles */
+
+        .stat-group-card {
+            background: rgba(0,0,0,0.3);
+            border-radius: 24px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-group-card.low { border-left: 4px solid #ef4444; }
+        .stat-group-card.medium { border-left: 4px solid #ffd700; }
+        .stat-group-card.high { border-left: 4px solid #4ade80; }
+
+        .group-percent {
+            font-size: 42px;
+            font-weight: 800;
+            margin: 10px 0;
+        }
+
+        .low .group-percent { color: #ef4444; }
+        .medium .group-percent { color: #ffd700; }
+        .high .group-percent { color: #4ade80; }
+
+        /* Tables */
+        .history-section, .recent-section, .stats-collapsible {
+            background: rgba(0,0,0,0.4);
+            border-radius: 28px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
         .history-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 12px;
         }
-        
+
         .history-table th {
-            background: rgba(251, 191, 36, 0.15);
+            background: rgba(255,215,0,0.1);
             padding: 12px 8px;
-            font-weight: 600;
         }
-        
+
         .history-table td {
             padding: 10px 8px;
             border-bottom: 1px solid rgba(255,255,255,0.05);
         }
-        
-        /* Badges */
-        .protection-badge {
-            display: inline-block;
+
+        .badge-continue {
+            background: rgba(74,222,128,0.2);
+            color: #4ade80;
             padding: 4px 12px;
             border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
+            font-size: 10px;
         }
-        
-        .badge-continue {
-            background: rgba(74, 222, 128, 0.2);
-            color: #4ade80;
-        }
-        
+
         .badge-switch {
-            background: rgba(251, 191, 36, 0.2);
-            color: #fbbf24;
+            background: rgba(255,215,0,0.2);
+            color: #ffd700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 10px;
         }
-        
-        .result-badge.correct {
-            background: rgba(74, 222, 128, 0.2);
+
+        .correct-badge {
+            background: rgba(74,222,128,0.2);
             color: #4ade80;
             padding: 4px 10px;
             border-radius: 20px;
         }
-        
-        .result-badge.incorrect {
-            background: rgba(239, 68, 68, 0.2);
+
+        .wrong-badge {
+            background: rgba(239,68,68,0.2);
             color: #ef4444;
             padding: 4px 10px;
             border-radius: 20px;
         }
-        
-        .pattern-badge {
-            background: rgba(139, 92, 246, 0.2);
-            color: #a78bfa;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 10px;
-            font-family: monospace;
+
+        .results-grid {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
         }
-        
-        /* Group Stats */
-        .group-stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin: 30px 0;
-        }
-        
-        .group-stat {
-            background: rgba(0,0,0,0.3);
-            border-radius: 20px;
-            padding: 20px;
+
+        .result-box {
+            background: rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 10px 15px;
+            min-width: 70px;
             text-align: center;
         }
-        
-        .group-probability {
-            font-size: 36px;
-            font-weight: 800;
-            margin: 10px 0;
+
+        .result-box.lightning {
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            color: #1a1a2e;
         }
-        
-        .low-group .group-probability { color: #ef4444; }
-        .medium-group .group-probability { color: #fbbf24; }
-        .high-group .group-probability { color: #4ade80; }
-        
-        /* Buttons */
+
         .refresh-btn, .pagination-btn {
-            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
             border: none;
-            padding: 8px 20px;
+            padding: 8px 22px;
             border-radius: 30px;
             color: #1a1a2e;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: 0.2s;
         }
-        
+
         .refresh-btn:hover, .pagination-btn:hover:not(:disabled) {
-            transform: scale(1.05);
+            transform: scale(1.03);
         }
-        
-        .pagination-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
+
+        .auto-refresh {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
         }
-        
-        /* Animations */
+
         @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(-15px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
+
+        @media (max-width: 900px) {
+            .stats-grid { grid-template-columns: repeat(2,1fr); }
+            .dual-models-row { flex-direction: column; }
+            .stats-group { grid-template-columns: 1fr; }
+            .model-prediction { font-size: 36px; }
+            .final-group { font-size: 42px; }
         }
-        
-        .status-match {
-            background: rgba(74, 222, 128, 0.2);
-            color: #4ade80;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            animation: pulse 1.5s infinite;
-        }
-        
-        .status-wait {
-            background: rgba(251, 191, 36, 0.2);
-            color: #fbbf24;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            .container { padding: 15px; }
-            .final-group-name { font-size: 36px; }
-            .model-value { font-size: 24px; }
-            .preference-options { gap: 12px; flex-direction: column; align-items: center; }
-            .pref-option { width: 100%; text-align: center; }
-            .group-stats { grid-template-columns: 1fr; gap: 12px; }
-            .pattern-info-bar { flex-direction: column; }
-            .subpattern-content { flex-direction: column; }
-        }
-        
-        @media (max-width: 480px) {
-            .final-group-name { font-size: 28px; }
-            .stat-value { font-size: 24px; }
-        }
-        
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.05);
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: rgba(251, 191, 36, 0.5);
-            border-radius: 10px;
+
+        @media (max-width: 600px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .pattern-row-info { flex-direction: column; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <div class="logo">
-                <span class="lightning-icon">⚡</span>
-                <h1>Lightning Dice Predictor</h1>
-                <span class="version-badge">v11.1 - Dual Model AI</span>
-            </div>
-            <div class="header-buttons">
-                <div class="status-badge" id="connectionStatus">
-                    <span class="status-dot"></span>
-                    <span id="statusText">Connecting...</span>
-                </div>
-            </div>
-        </header>
-
-        <div id="errorMessage" class="error-message" style="display: none;"></div>
-
-        <!-- Stats Grid -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">📊 Total Rounds</div>
-                <div class="stat-value" id="totalRounds">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">📈 Average Result</div>
-                <div class="stat-value" id="avgResult">0.00</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">🎯 Most Active</div>
-                <div class="stat-value" id="mostActiveGroup">-</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">⚡ Lightning Boost</div>
-                <div class="stat-value" id="lightningBoost">0%</div>
-            </div>
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">
+            <span class="lightning-icon">⚡</span>
+            <h1>Lightning Dice Predictor</h1>
+            <span class="version-badge">v11.2 DUAL AI</span>
         </div>
-
-        <!-- Sub-Pattern Alert Section - NEW v11.1 -->
-        <div id="subpatternAlert" class="subpattern-alert" style="display: none;">
-            <div class="subpattern-alert-header">
-                <div class="subpattern-title">
-                    <span>🔍</span> SUB-PATTERN DETECTED!
-                </div>
-                <button class="subpattern-close" onclick="document.getElementById('subpatternAlert').style.display='none'">✕ Dismiss</button>
-            </div>
-            <div class="subpattern-content" id="subpatternContent">
-                <div class="subpattern-item continue-item">
-                    <div class="subpattern-model">🔵 CONTINUE Model</div>
-                    <div class="subpattern-value continue" id="subpatternContinue">--</div>
-                </div>
-                <div class="subpattern-item switch-item">
-                    <div class="subpattern-model">🟡 SWITCH Model</div>
-                    <div class="subpattern-value switch" id="subpatternSwitch">--</div>
-                </div>
-            </div>
-            <div class="subpattern-time" id="subpatternTime"></div>
-        </div>
-
-        <!-- DUAL MODEL PREDICTION SECTION -->
-        <div class="prediction-section">
-            <h2>🎯 DUAL MODEL 3-STEP PATTERN SYSTEM</h2>
-            
-            <div class="pattern-info-bar">
-                <div class="info-item">
-                    <span class="info-label">📐 LAST 3 RESULTS</span>
-                    <span class="info-value" id="last3Results">-- → -- → --</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">🔍 PATTERN STATUS</span>
-                    <span class="info-value" id="patternStatus">Checking...</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">🎯 ACTIVE MODEL</span>
-                    <span class="info-value" id="activeModelDisplay">--</span>
-                </div>
-            </div>
-
-            <!-- User Preference Selector -->
-            <div class="preference-selector">
-                <div class="preference-title">🎮 SELECT PREDICTION MODEL</div>
-                <div class="preference-options">
-                    <div class="pref-option pref-continue">
-                        <input type="radio" name="preference" id="prefContinue" value="CONTINUE">
-                        <label for="prefContinue">🔵 CONTINUE Only (Last Result)</label>
-                    </div>
-                    <div class="pref-option pref-switch">
-                        <input type="radio" name="preference" id="prefSwitch" value="SWITCH">
-                        <label for="prefSwitch">🟡 SWITCH Only (Previous Result)</label>
-                    </div>
-                    <div class="pref-option pref-auto">
-                        <input type="radio" name="preference" id="prefAuto" value="AUTO" checked>
-                        <label for="prefAuto">🤖 AUTO (Selector Decides)</label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="pattern-table">
-                <div class="pattern-header">
-                    <div class="col-pattern">3-Step Pattern (Trigger)</div>
-                    <div class="col-protection">Active Model</div>
-                    <div class="col-prediction">Prediction</div>
-                    <div class="col-confidence">Confidence</div>
-                </div>
-                <div class="pattern-row" id="patternRow">
-                    <div class="col-pattern" id="patternName">-- → -- → --</div>
-                    <div class="col-protection" id="protectionType">--</div>
-                    <div class="col-prediction" id="predictionGroup">--</div>
-                    <div class="col-confidence" id="predictionConfidence">--%</div>
-                </div>
-            </div>
-
-            <!-- Models Status -->
-            <div class="models-status">
-                <div class="models-title">🔬 DUAL MODEL STATUS</div>
-                <div class="model-cards">
-                    <div class="model-card continue-card" id="continueModelCard">
-                        <div class="model-name">🔵 CONTINUE MODEL</div>
-                        <div class="model-value continue" id="continueModelValue">--</div>
-                        <div class="model-accuracy" id="continueModelAccuracy">Accuracy: 0%</div>
-                        <div class="model-status" id="continueModelStatus">⚪ Inactive</div>
-                    </div>
-                    <div class="model-card switch-card" id="switchModelCard">
-                        <div class="model-name">🟡 SWITCH MODEL</div>
-                        <div class="model-value switch" id="switchModelValue">--</div>
-                        <div class="model-accuracy" id="switchModelAccuracy">Accuracy: 0%</div>
-                        <div class="model-status" id="switchModelStatus">⚪ Inactive</div>
-                    </div>
-                </div>
-                <div class="selector-decision" id="selectorDecision">
-                    🎯 Selector: Waiting for pattern...
-                </div>
-            </div>
-
-            <!-- Final Prediction -->
-            <div class="final-prediction-card">
-                <div class="final-header">
-                    <span class="final-icon">🏆</span>
-                    <span class="final-title">AI FINAL PREDICTION</span>
-                    <span class="final-vote" id="predictionType">(Model)</span>
-                </div>
-                <div class="final-group">
-                    <span class="final-group-icon" id="finalIcon">🎯</span>
-                    <span class="final-group-name" id="finalName">--</span>
-                    <span class="final-group-range" id="finalRange">--</span>
-                </div>
-                <div class="final-confidence">
-                    <div class="confidence-meter">
-                        <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
-                    </div>
-                    <span class="confidence-text" id="finalConfidence">0%</span>
-                </div>
-                <div class="final-explanation" id="finalExplanation">Waiting for 3 results to analyze pattern...</div>
-                <div class="final-weights" id="finalWeights"></div>
-            </div>
-        </div>
-
-        <!-- Pattern Reference -->
-        <div class="patterns-reference">
-            <div class="section-header">
-                <h2>📚 3-STEP PATTERNS (6 Total - TRIGGER)</h2>
-            </div>
-            <div class="patterns-grid">
-                <div class="pattern-card"><div class="pattern-3step">LOW → HIGH → MEDIUM</div><div>🎯 Activates Dual Models</div></div>
-                <div class="pattern-card"><div class="pattern-3step">HIGH → LOW → MEDIUM</div><div>🎯 Activates Dual Models</div></div>
-                <div class="pattern-card"><div class="pattern-3step">MEDIUM → LOW → HIGH</div><div>🎯 Activates Dual Models</div></div>
-                <div class="pattern-card"><div class="pattern-3step">MEDIUM → HIGH → LOW</div><div>🎯 Activates Dual Models</div></div>
-                <div class="pattern-card"><div class="pattern-3step">LOW → MEDIUM → HIGH</div><div>🎯 Activates Dual Models</div></div>
-                <div class="pattern-card"><div class="pattern-3step">HIGH → MEDIUM → LOW</div><div>🎯 Activates Dual Models</div></div>
-            </div>
-        </div>
-
-        <!-- Group Stats -->
-        <div class="group-stats">
-            <div class="group-stat low-group">
-                <div class="group-header"><span class="group-icon">🔴</span> <span class="group-title">LOW</span> <span class="group-range">(3-9)</span></div>
-                <div class="group-probability" id="lowProb">0%</div>
-                <div class="group-trend" id="lowTrend">-</div>
-            </div>
-            <div class="group-stat medium-group">
-                <div class="group-header"><span class="group-icon">🟡</span> <span class="group-title">MEDIUM</span> <span class="group-range">(10-11)</span></div>
-                <div class="group-probability" id="mediumProb">0%</div>
-                <div class="group-trend" id="mediumTrend">-</div>
-            </div>
-            <div class="group-stat high-group">
-                <div class="group-header"><span class="group-icon">🟢</span> <span class="group-title">HIGH</span> <span class="group-range">(12-18)</span></div>
-                <div class="group-probability" id="highProb">0%</div>
-                <div class="group-trend" id="highTrend">-</div>
-            </div>
-        </div>
-
-        <!-- History Section -->
-        <div class="history-section">
-            <div class="section-header">
-                <h2>📋 PREDICTION HISTORY</h2>
-                <button class="refresh-btn" id="refreshBtn">🔄 Refresh</button>
-            </div>
-            <div class="table-container">
-                <table class="history-table" id="historyTable">
-                    <thead><tr><th>Time</th><th>Dice</th><th>Total</th><th>Pattern</th><th>Model</th><th>Prediction</th><th>Result</th></tr></thead>
-                    <tbody id="historyTableBody"><tr><td colspan="7">Loading history...</td></tr></tbody>
-                </table>
-            </div>
-            <div class="pagination-controls">
-                <button class="pagination-btn" id="prevPageBtn" disabled>◀ Previous</button>
-                <span class="pagination-info" id="paginationInfo">Page 1 of 1</span>
-                <button class="pagination-btn" id="nextPageBtn" disabled>Next ▶</button>
-            </div>
-        </div>
-
-        <!-- Recent Results -->
-        <div class="recent-section">
-            <div class="section-header"><h2>📊 Recent Results</h2></div>
-            <div class="results-grid" id="resultsGrid"><div class="loading">Loading results...</div></div>
-        </div>
-
-        <!-- Stats Section -->
-        <div class="stats-section collapsible-section">
-            <div class="stats-header" id="statsHeader">
-                <h2>📈 Number Statistics</h2>
-                <span class="toggle-icon" id="toggleIcon">▶</span>
-            </div>
-            <div class="stats-content" id="statsContent" style="display: none;">
-                <div class="table-container">
-                    <table class="stats-table" id="statsTable">
-                        <thead><tr><th>Number</th><th>Group</th><th>Frequency</th><th>Percentage</th><th>Last Seen</th></tr></thead>
-                        <tbody id="statsTableBody"><tr><td colspan="5">Loading statistics...</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="auto-refresh-control">
-            <label class="switch"><input type="checkbox" id="autoRefreshToggle" checked><span class="slider round"></span></label>
-            <span>Auto Refresh (3s)</span>
-            <span class="refresh-timer" id="refreshTimer">3s</span>
+        <div class="status-badge" id="connectionStatus">
+            <span class="status-dot"></span>
+            <span id="statusText">Connecting...</span>
         </div>
     </div>
 
-    <script src="/script.js"></script>
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">🎲 TOTAL ROUNDS</div><div class="stat-value" id="totalRounds">0</div></div>
+        <div class="stat-card"><div class="stat-label">📈 AVG RESULT</div><div class="stat-value" id="avgResult">0.00</div></div>
+        <div class="stat-card"><div class="stat-label">🔥 MOST ACTIVE</div><div class="stat-value" id="mostActiveGroup">--</div></div>
+        <div class="stat-card"><div class="stat-label">⚡ LIGHTNING</div><div class="stat-value" id="lightningBoost">0%</div></div>
+    </div>
+
+    <!-- Sub Pattern Alert -->
+    <div id="subAlert" class="sub-alert">
+        <div class="sub-alert-header">
+            <span class="sub-alert-title">🔍 SUB-PATTERN DETECTED!</span>
+            <button class="sub-alert-close" onclick="document.getElementById('subAlert').style.display='none'">✕ Dismiss</button>
+        </div>
+        <div class="sub-alert-content" id="subAlertContent">
+            <div class="sub-alert-item continue-sub"><span style="font-size:11px;">🔵 CONTINUE</span><br><span id="subContinueVal" style="font-size:16px;font-weight:700;">--</span></div>
+            <div class="sub-alert-item switch-sub"><span style="font-size:11px;">🟡 SWITCH</span><br><span id="subSwitchVal" style="font-size:16px;font-weight:700;">--</span></div>
+        </div>
+        <div style="font-size:10px;opacity:0.5;margin-top:10px;" id="subTime"></div>
+    </div>
+
+    <!-- Main Prediction Card -->
+    <div class="prediction-card">
+        <div class="card-title">🎯 DUAL MODEL 3-STEP PATTERN SYSTEM</div>
+
+        <div class="pattern-row-info">
+            <div class="pattern-info-chip"><span class="pattern-info-label">📐 LAST 3</span><span class="pattern-info-value" id="last3Display">-- → -- → --</span></div>
+            <div class="pattern-info-chip"><span class="pattern-info-label">🔍 STATUS</span><span class="pattern-info-value" id="patternStatusText">Checking...</span></div>
+            <div class="pattern-info-chip"><span class="pattern-info-label">🎯 ACTIVE</span><span class="pattern-info-value" id="activeModelText">--</span></div>
+        </div>
+
+        <!-- Dual Models Row (No Preference Selector) -->
+        <div class="dual-models-row">
+            <div class="model-box continue-box" id="continueBox">
+                <div class="model-icon">🔵</div>
+                <div class="model-name continue-name">CONTINUE MODEL</div>
+                <div class="model-prediction continue-prediction" id="continuePrediction">--</div>
+                <div class="model-accuracy" id="continueAccuracy">Accuracy: 0%</div>
+                <div class="model-status-badge" id="continueStatus">⚪ Inactive</div>
+            </div>
+            <div class="model-box switch-box" id="switchBox">
+                <div class="model-icon">🟡</div>
+                <div class="model-name switch-name">SWITCH MODEL</div>
+                <div class="model-prediction switch-prediction" id="switchPrediction">--</div>
+                <div class="model-accuracy" id="switchAccuracy">Accuracy: 0%</div>
+                <div class="model-status-badge" id="switchStatus">⚪ Inactive</div>
+            </div>
+        </div>
+
+        <!-- Final Prediction -->
+        <div class="final-prediction-area">
+            <div class="final-label">🏆 AI FINAL PREDICTION</div>
+            <div class="final-group" id="finalGroupText">--</div>
+            <div class="confidence-wrapper"><div class="confidence-bar" id="confidenceBar" style="width:0%"></div></div>
+            <div class="confidence-text" id="confidencePercent">0%</div>
+            <div class="explanation-text" id="explanationMsg">Waiting for 3 results...</div>
+            <div style="margin-top:15px;font-size:11px;opacity:0.6;" id="dynamicHint"></div>
+        </div>
+    </div>
+
+    <!-- Patterns Reference -->
+    <div class="patterns-section">
+        <div class="patterns-title">📚 6 TRIGGER PATTERNS (3-Step)</div>
+        <div class="patterns-list">
+            <div class="pattern-item">LOW → HIGH → MEDIUM</div>
+            <div class="pattern-item">HIGH → LOW → MEDIUM</div>
+            <div class="pattern-item">MEDIUM → LOW → HIGH</div>
+            <div class="pattern-item">MEDIUM → HIGH → LOW</div>
+            <div class="pattern-item">LOW → MEDIUM → HIGH</div>
+            <div class="pattern-item">HIGH → MEDIUM → LOW</div>
+        </div>
+    </div>
+
+    <!-- Group Stats -->
+    <div class="stats-group">
+        <div class="stat-group-card low"><div class="group-header">🔴 LOW (3-9)</div><div class="group-percent" id="lowPercent">0%</div><div id="lowTrend">-</div></div>
+        <div class="stat-group-card medium"><div class="group-header">🟡 MEDIUM (10-11)</div><div class="group-percent" id="mediumPercent">0%</div><div id="mediumTrend">-</div></div>
+        <div class="stat-group-card high"><div class="group-header">🟢 HIGH (12-18)</div><div class="group-percent" id="highPercent">0%</div><div id="highTrend">-</div></div>
+    </div>
+
+    <!-- History -->
+    <div class="history-section">
+        <div class="section-header"><h2>📋 PREDICTION HISTORY</h2><button class="refresh-btn" id="refreshBtn">🔄 Refresh</button></div>
+        <div class="table-container"><table class="history-table" id="historyTable"><thead><tr><th>Time</th><th>Dice</th><th>Total</th><th>Pattern</th><th>Model</th><th>Prediction</th><th>Result</th></tr></thead><tbody id="historyBody"><tr><td colspan="7">Loading...</td></tr></tbody></table></div>
+        <div class="pagination-controls" style="display:flex;justify-content:center;gap:20px;margin-top:20px;"><button class="pagination-btn" id="prevBtn">◀ Prev</button><span id="pageInfo">Page 1</span><button class="pagination-btn" id="nextBtn">Next ▶</button></div>
+    </div>
+
+    <!-- Recent Results -->
+    <div class="recent-section"><div class="section-header"><h2>📊 Recent Results</h2></div><div class="results-grid" id="resultsGrid"><div class="loading">Loading...</div></div></div>
+
+    <!-- Stats Collapsible -->
+    <div class="stats-collapsible"><div class="stats-header" id="statsHeader" style="display:flex;justify-content:space-between;cursor:pointer;"><h2>📈 Number Statistics</h2><span id="toggleIcon">▶</span></div><div id="statsContent" style="display:none;"><table class="history-table" id="statsTable"><thead><tr><th>Number</th><th>Group</th><th>Freq</th><th>%</th><th>Last Seen</th></tr></thead><tbody id="statsBody"><tr><td colspan="5">Loading...</td></tr></tbody></table></div></div>
+
+    <div class="auto-refresh"><label class="switch"><input type="checkbox" id="autoRefreshToggle" checked><span style="width:50px;height:24px;background:rgba(255,255,255,0.3);border-radius:24px;display:inline-block;position:relative;"></span></label><span>Auto Refresh (3s)</span><span id="timerDisplay">3s</span></div>
+</div>
+
+<script>
+    class LightningApp {
+        constructor() {
+            this.api = '/api';
+            this.ws = null;
+            this.results = [];
+            this.history = [];
+            this.page = 1;
+            this.init();
+        }
+        async init() {
+            this.bindEvents();
+            await this.loadData();
+            this.connectWS();
+            setInterval(() => this.loadData(), 10000);
+        }
+        bindEvents() {
+            document.getElementById('refreshBtn')?.addEventListener('click',()=>this.loadData());
+            document.getElementById('prevBtn')?.addEventListener('click',()=>{this.page--;this.renderHistory();});
+            document.getElementById('nextBtn')?.addEventListener('click',()=>{this.page++;this.renderHistory();});
+            document.getElementById('statsHeader')?.addEventListener('click',()=>{let c=document.getElementById('statsContent');c.style.display=c.style.display==='none'?'block':'none';document.getElementById('toggleIcon').style.transform=c.style.display==='none'?'rotate(0deg)':'rotate(90deg)';});
+        }
+        async loadData() {
+            try {
+                const res = await fetch(`${this.api}/all-data`);
+                const data = await res.json();
+                if(data.success) {
+                    this.results = (data.results||[]).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+                    this.history = (data.predictions||[]).filter(p=>p.predictedGroup && p.predictedGroup!=='WAITING');
+                    this.updateStats(data.stats);
+                    this.updateUI(data.currentPrediction);
+                    this.renderHistory();
+                    this.renderRecent();
+                    this.renderNumberStats();
+                    this.updateGroupProbs();
+                }
+            } catch(e) { console.error(e); }
+        }
+        updateStats(stats) {
+            if(stats) {
+                document.getElementById('totalRounds').innerText = stats.totalRounds||0;
+                document.getElementById('avgResult').innerText = stats.avgResult||'0.00';
+                document.getElementById('mostActiveGroup').innerText = stats.mostActiveGroup||'LOW';
+                document.getElementById('lightningBoost').innerText = (stats.lightningBoost||0)+'%';
+            }
+        }
+        updateUI(pred) {
+            if(!pred || pred.waitingForData || pred.status==='WAITING') {
+                document.getElementById('last3Display').innerHTML = '-- → -- → --';
+                document.getElementById('patternStatusText').innerHTML = '<span style="color:#ffd700;">⏳ WAIT MODE</span>';
+                document.getElementById('activeModelText').innerHTML = 'WAIT';
+                document.getElementById('continuePrediction').innerHTML = '--';
+                document.getElementById('switchPrediction').innerHTML = '--';
+                document.getElementById('finalGroupText').innerHTML = 'WAITING';
+                document.getElementById('confidenceBar').style.width = '0%';
+                document.getElementById('confidencePercent').innerHTML = '0%';
+                document.getElementById('explanationMsg').innerHTML = 'Waiting for 3 results to detect pattern...';
+                return;
+            }
+            if(pred.last3Results) document.getElementById('last3Display').innerHTML = pred.last3Results.join(' → ');
+            document.getElementById('patternStatusText').innerHTML = '<span class="status-match">✅ PATTERN ACTIVE</span>';
+            document.getElementById('activeModelText').innerHTML = pred.activeModel || pred.protectionType || '--';
+            document.getElementById('continuePrediction').innerHTML = pred.continueModelPrediction || pred.continueGroup || '--';
+            document.getElementById('switchPrediction').innerHTML = pred.switchModelPrediction || pred.switchGroup || '--';
+            let final = pred.predictedGroup || '--';
+            document.getElementById('finalGroupText').innerHTML = final;
+            let conf = pred.confidence || 50;
+            document.getElementById('confidenceBar').style.width = conf+'%';
+            document.getElementById('confidencePercent').innerHTML = conf+'%';
+            document.getElementById('explanationMsg').innerHTML = pred.description || `Pattern ${pred.pattern3step} | Using ${pred.activeModel} model`;
+            if(pred.modelsStatus) {
+                let cs = pred.modelsStatus.continue;
+                let ss = pred.modelsStatus.switch;
+                document.getElementById('continueAccuracy').innerHTML = `Accuracy: ${cs?.accuracy?.toFixed(1)||0}%`;
+                document.getElementById('switchAccuracy').innerHTML = `Accuracy: ${ss?.accuracy?.toFixed(1)||0}%`;
+                document.getElementById('continueStatus').innerHTML = cs?.isActive ? '🟢 ACTIVE' : '⚪ Inactive';
+                document.getElementById('switchStatus').innerHTML = ss?.isActive ? '🟢 ACTIVE' : '⚪ Inactive';
+                if(pred.activeModel === 'CONTINUE') document.getElementById('continueBox').classList.add('active');
+                else document.getElementById('continueBox').classList.remove('active');
+                if(pred.activeModel === 'SWITCH') document.getElementById('switchBox').classList.add('active');
+                else document.getElementById('switchBox').classList.remove('active');
+            }
+            document.getElementById('dynamicHint').innerHTML = `🔵 CONTINUE: ${pred.continueValue||'--'} | 🟡 SWITCH: ${pred.switchValue||'--'}`;
+            if(pred.subPatternDetected) this.showSubAlert(pred.subPatternDetected, pred.pattern3step);
+        }
+        showSubAlert(sub, current) {
+            let alertDiv = document.getElementById('subAlert');
+            document.getElementById('subContinueVal').innerHTML = `${sub}<br><span style="font-size:9px;">Current: ${current||'--'}</span>`;
+            document.getElementById('subSwitchVal').innerHTML = `${sub}<br><span style="font-size:9px;">Current: ${current||'--'}</span>`;
+            document.getElementById('subTime').innerHTML = `🕐 ${new Date().toLocaleTimeString()}`;
+            alertDiv.style.display = 'block';
+            setTimeout(()=>alertDiv.style.display='none', 12000);
+        }
+        renderHistory() {
+            let tbody = document.getElementById('historyBody');
+            if(!this.history.length) { tbody.innerHTML='<tr><td colspan="7">No predictions yet</td></tr>'; return; }
+            let perPage = 10;
+            let total = Math.ceil(this.history.length/perPage);
+            if(this.page<1) this.page=1;
+            if(this.page>total) this.page=total;
+            let start = (this.page-1)*perPage;
+            let items = this.history.slice(start, start+perPage);
+            tbody.innerHTML = items.map(h=>`<tr><td>${h.time||'--'}</td><td>${h.dice||'--'}</td><td>${h.total||'--'}</td><td><span class="pattern-badge" style="background:rgba(139,92,246,0.2);padding:2px 8px;border-radius:12px;">${h.pattern3step||'--'}</span></td><td><span class="${h.protectionType==='CONTINUE'?'badge-continue':'badge-switch'}">${h.protectionType||'--'}</span></td><td>${h.predictedGroup||'--'}</td><td><span class="${h.isCorrect?'correct-badge':'wrong-badge'}">${h.isCorrect?'✓':'✗'}</span></td></tr>`).join('');
+            document.getElementById('pageInfo').innerText = `Page ${this.page} of ${total||1}`;
+        }
+        renderRecent() {
+            let grid = document.getElementById('resultsGrid');
+            if(!this.results.length) { grid.innerHTML='<div>No results</div>'; return; }
+            grid.innerHTML = this.results.slice(0,10).map(r=>`<div class="result-box ${r.multiplier>10?'lightning':''}"><div>${r.group||'--'} ${r.total||'--'}</div><div style="font-size:9px;">${r.multiplier||1}x</div><div style="font-size:8px;">${new Date(r.timestamp).toLocaleTimeString()}</div></div>`).join('');
+        }
+        renderNumberStats() {
+            if(!this.results.length) return;
+            let stats = {};
+            this.results.forEach(r=>{if(r.total){stats[r.total]=(stats[r.total]||0)+1;}});
+            let total = this.results.length;
+            let html = '';
+            for(let i=3;i<=18;i++) {
+                let cnt = stats[i]||0;
+                let pct = ((cnt/total)*100).toFixed(1);
+                let group = i<=9?'LOW':(i<=11?'MEDIUM':'HIGH');
+                let color = group==='LOW'?'#ef4444':(group==='MEDIUM'?'#ffd700':'#4ade80');
+                html += `<tr><td>${i}</td><td><span style="background:${color}20;color:${color};padding:2px 8px;border-radius:20px;">${group}</span></td><td>${cnt}</td><td>${pct}%</td><td>--</td></tr>`;
+            }
+            document.getElementById('statsBody').innerHTML = html;
+        }
+        updateGroupProbs() {
+            let recent = this.results.slice(0,10);
+            let counts = {LOW:0,MEDIUM:0,HIGH:0};
+            recent.forEach(r=>{if(r.group) counts[r.group]++;});
+            let total = recent.length||1;
+            document.getElementById('lowPercent').innerText = Math.round((counts.LOW/total)*100)+'%';
+            document.getElementById('mediumPercent').innerText = Math.round((counts.MEDIUM/total)*100)+'%';
+            document.getElementById('highPercent').innerText = Math.round((counts.HIGH/total)*100)+'%';
+        }
+        connectWS() {
+            let proto = location.protocol==='https:'?'wss:':'ws:';
+            this.ws = new WebSocket(`${proto}//${location.host}`);
+            this.ws.onopen = ()=>{document.getElementById('statusText').innerText='Live';document.querySelector('.status-dot').style.background='#4ade80';};
+            this.ws.onclose = ()=>{document.getElementById('statusText').innerText='Reconnecting...';document.querySelector('.status-dot').style.background='#ef4444';setTimeout(()=>this.connectWS(),3000);};
+            this.ws.onmessage = (e)=>{let d=JSON.parse(e.data);if(d.type==='new_result'||d.type==='sub_pattern_detected')this.loadData();};
+        }
+    }
+    window.app = new LightningApp();
+</script>
 </body>
 </html>
