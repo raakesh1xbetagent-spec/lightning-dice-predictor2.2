@@ -1,142 +1,536 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="description" content="Lightning Dice Predictor - Dual Model 3-Step Pattern AI System">
-    <title>Lightning Dice Predictor - Dual Model AI v11.0</title>
+    <meta name="description" content="Lightning Dice Predictor - Dual Model 3-Step Pattern AI System v11.1">
+    <title>Lightning Dice Predictor - Dual Model AI v11.1</title>
     <link rel="stylesheet" href="/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* Additional styles for v11.0 Dual Model UI */
+        /* v11.1 Additional Styles - Sub-Pattern Alert & Modern UI */
         .preference-selector {
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.6), rgba(30, 27, 75, 0.6));
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 27, 75, 0.8));
             backdrop-filter: blur(10px);
-            border-radius: 16px;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 20px;
+            padding: 20px 25px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(251, 191, 36, 0.4);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
         }
         
         .preference-title {
-            font-size: 13px;
-            opacity: 0.7;
-            margin-bottom: 12px;
-            text-align: center;
+            font-size: 14px;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
         }
         
         .preference-options {
             display: flex;
             justify-content: center;
-            gap: 25px;
+            gap: 30px;
             flex-wrap: wrap;
         }
         
         .pref-option {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            padding: 8px 16px;
-            border-radius: 40px;
-            background: rgba(0,0,0,0.3);
+            padding: 10px 20px;
+            border-radius: 50px;
+            background: rgba(0,0,0,0.4);
             transition: all 0.3s ease;
         }
         
         .pref-option:hover {
-            background: rgba(251, 191, 36, 0.2);
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            background: rgba(251, 191, 36, 0.25);
         }
         
         .pref-option input {
-            cursor: pointer;
             width: 18px;
             height: 18px;
-            accent-color: #fbbf24;
+            margin-right: 8px;
         }
         
         .pref-option label {
+            font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
         }
         
-        .pref-continue label { color: #4ade80; }
-        .pref-switch label { color: #fbbf24; }
-        .pref-auto label { color: #a78bfa; }
-        
-        .models-status {
-            background: rgba(0,0,0,0.3);
+        /* Sub-Pattern Alert Card - NEW v11.1 */
+        .subpattern-alert {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2));
+            border-left: 4px solid #8b5cf6;
             border-radius: 16px;
-            padding: 15px;
-            margin-top: 15px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            animation: slideIn 0.5s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .subpattern-alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .subpattern-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #a78bfa;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .subpattern-title span {
+            font-size: 18px;
+        }
+        
+        .subpattern-close {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .subpattern-close:hover {
+            background: rgba(239, 68, 68, 0.6);
+        }
+        
+        .subpattern-content {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .subpattern-item {
+            flex: 1;
+            background: rgba(0,0,0,0.3);
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .subpattern-item.continue-item { border-bottom: 2px solid #4ade80; }
+        .subpattern-item.switch-item { border-bottom: 2px solid #fbbf24; }
+        
+        .subpattern-model {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-bottom: 5px;
+        }
+        
+        .subpattern-value {
+            font-size: 18px;
+            font-weight: 700;
+            font-family: monospace;
+            letter-spacing: 1px;
+        }
+        
+        .subpattern-value.continue { color: #4ade80; }
+        .subpattern-value.switch { color: #fbbf24; }
+        
+        .subpattern-time {
+            font-size: 10px;
+            opacity: 0.5;
+            margin-top: 8px;
+        }
+        
+        /* Modern Pattern Info Bar */
+        .pattern-info-bar {
+            background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(0,0,0,0.3));
+            border-radius: 20px;
+            padding: 18px 25px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(0,0,0,0.3);
+            padding: 8px 18px;
+            border-radius: 40px;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+        
+        .info-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: #fbbf24;
+            font-family: monospace;
+        }
+        
+        /* Model Status Cards - Enhanced */
+        .models-status {
+            background: linear-gradient(135deg, rgba(0,0,0,0.4), rgba(0,0,0,0.2));
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(251, 191, 36, 0.2);
         }
         
         .models-title {
-            font-size: 12px;
-            opacity: 0.7;
-            margin-bottom: 12px;
-            text-align: center;
+            font-size: 13px;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
         }
         
         .model-cards {
             display: flex;
             justify-content: space-between;
-            gap: 15px;
+            gap: 20px;
             flex-wrap: wrap;
         }
         
         .model-card {
             flex: 1;
             text-align: center;
-            padding: 10px;
-            background: rgba(0,0,0,0.2);
-            border-radius: 12px;
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 16px;
             transition: all 0.3s ease;
         }
         
-        .model-card.continue-card { border-left: 3px solid #4ade80; }
-        .model-card.switch-card { border-left: 3px solid #fbbf24; }
-        .model-card.active-card { background: rgba(251, 191, 36, 0.15); }
+        .model-card.continue-card { 
+            border-left: 3px solid #4ade80;
+            box-shadow: 0 0 15px rgba(74, 222, 128, 0.1);
+        }
+        .model-card.switch-card { 
+            border-left: 3px solid #fbbf24;
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.1);
+        }
+        .model-card.active-card { 
+            background: rgba(251, 191, 36, 0.2);
+            transform: scale(1.02);
+        }
         
         .model-name {
             font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 5px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
         }
         
         .model-value {
-            font-size: 24px;
+            font-size: 32px;
             font-weight: 800;
-            margin: 5px 0;
+            margin: 8px 0;
         }
         
-        .model-value.continue { color: #4ade80; }
-        .model-value.switch { color: #fbbf24; }
+        .model-value.continue { color: #4ade80; text-shadow: 0 0 10px rgba(74,222,128,0.3); }
+        .model-value.switch { color: #fbbf24; text-shadow: 0 0 10px rgba(251,191,36,0.3); }
         
         .model-accuracy {
             font-size: 10px;
-            opacity: 0.7;
-        }
-        
-        .model-status-badge {
+            opacity: 0.8;
+            background: rgba(0,0,0,0.3);
             display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 5px;
+            padding: 3px 10px;
+            border-radius: 20px;
         }
         
-        .status-active { background: #4ade80; box-shadow: 0 0 5px #4ade80; }
-        .status-inactive { background: #6b7280; }
+        .model-status {
+            font-size: 10px;
+            margin-top: 8px;
+        }
         
-        .selector-decision {
-            background: rgba(251, 191, 36, 0.15);
-            border-radius: 12px;
-            padding: 10px;
-            margin-top: 10px;
+        .model-status .active-badge {
+            color: #4ade80;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        /* Final Prediction Card - Premium */
+        .final-prediction-card {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.08));
+            border-radius: 24px;
+            padding: 30px;
             text-align: center;
+            border: 2px solid rgba(251, 191, 36, 0.5);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .final-group {
+            font-size: 56px;
+            margin: 20px 0;
+        }
+        
+        .final-group-name {
+            font-size: 56px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .confidence-meter {
+            height: 12px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 20px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #fbbf24, #f59e0b);
+            border-radius: 20px;
+            transition: width 0.5s ease;
+        }
+        
+        /* Results Grid - Modern */
+        .results-grid {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 10px 0;
+        }
+        
+        .result-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            border-radius: 16px;
+            padding: 12px 16px;
+            min-width: 80px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        
+        .result-card:hover {
+            transform: translateY(-3px);
+            background: rgba(255,255,255,0.15);
+        }
+        
+        .result-card.lightning {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #1a1a2e;
+        }
+        
+        .result-number {
+            font-size: 24px;
+            font-weight: 800;
+        }
+        
+        /* Patterns Grid */
+        .patterns-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .pattern-card {
+            background: rgba(0,0,0,0.3);
+            border-radius: 14px;
+            padding: 12px 18px;
+            border-left: 3px solid #fbbf24;
+            transition: all 0.2s;
+        }
+        
+        .pattern-card:hover {
+            transform: translateX(5px);
+            background: rgba(0,0,0,0.5);
+        }
+        
+        .pattern-3step {
+            font-family: monospace;
+            font-size: 14px;
+            font-weight: 700;
+            color: #fbbf24;
+            margin-bottom: 6px;
+        }
+        
+        /* Table Styles */
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        
+        .history-table th {
+            background: rgba(251, 191, 36, 0.15);
+            padding: 12px 8px;
+            font-weight: 600;
+        }
+        
+        .history-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        /* Badges */
+        .protection-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
             font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .badge-continue {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+        
+        .badge-switch {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+        
+        .result-badge.correct {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+        
+        .result-badge.incorrect {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+        
+        .pattern-badge {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a78bfa;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-family: monospace;
+        }
+        
+        /* Group Stats */
+        .group-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .group-stat {
+            background: rgba(0,0,0,0.3);
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .group-probability {
+            font-size: 36px;
+            font-weight: 800;
+            margin: 10px 0;
+        }
+        
+        .low-group .group-probability { color: #ef4444; }
+        .medium-group .group-probability { color: #fbbf24; }
+        .high-group .group-probability { color: #4ade80; }
+        
+        /* Buttons */
+        .refresh-btn, .pagination-btn {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border: none;
+            padding: 8px 20px;
+            border-radius: 30px;
+            color: #1a1a2e;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .refresh-btn:hover, .pagination-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+        }
+        
+        .pagination-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        /* Animations */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        .status-match {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .status-wait {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container { padding: 15px; }
+            .final-group-name { font-size: 36px; }
+            .model-value { font-size: 24px; }
+            .preference-options { gap: 12px; flex-direction: column; align-items: center; }
+            .pref-option { width: 100%; text-align: center; }
+            .group-stats { grid-template-columns: 1fr; gap: 12px; }
+            .pattern-info-bar { flex-direction: column; }
+            .subpattern-content { flex-direction: column; }
+        }
+        
+        @media (max-width: 480px) {
+            .final-group-name { font-size: 28px; }
+            .stat-value { font-size: 24px; }
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(251, 191, 36, 0.5);
+            border-radius: 10px;
         }
     </style>
 </head>
@@ -146,10 +540,9 @@
             <div class="logo">
                 <span class="lightning-icon">⚡</span>
                 <h1>Lightning Dice Predictor</h1>
-                <span class="version-badge">v11.0 - Dual Model AI</span>
+                <span class="version-badge">v11.1 - Dual Model AI</span>
             </div>
             <div class="header-buttons">
-                <button class="debug-btn" id="debugBtn" onclick="window.open('/debug.html', '_blank')">🔧 Debug Dashboard</button>
                 <div class="status-badge" id="connectionStatus">
                     <span class="status-dot"></span>
                     <span id="statusText">Connecting...</span>
@@ -159,45 +552,67 @@
 
         <div id="errorMessage" class="error-message" style="display: none;"></div>
 
+        <!-- Stats Grid -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-label">Total Rounds</div>
+                <div class="stat-label">📊 Total Rounds</div>
                 <div class="stat-value" id="totalRounds">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Average Result</div>
+                <div class="stat-label">📈 Average Result</div>
                 <div class="stat-value" id="avgResult">0.00</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Most Active Group</div>
+                <div class="stat-label">🎯 Most Active</div>
                 <div class="stat-value" id="mostActiveGroup">-</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Lightning Boost</div>
+                <div class="stat-label">⚡ Lightning Boost</div>
                 <div class="stat-value" id="lightningBoost">0%</div>
             </div>
         </div>
 
-        <!-- ============ DUAL MODEL PREDICTION SECTION (v11.0) ============ -->
+        <!-- Sub-Pattern Alert Section - NEW v11.1 -->
+        <div id="subpatternAlert" class="subpattern-alert" style="display: none;">
+            <div class="subpattern-alert-header">
+                <div class="subpattern-title">
+                    <span>🔍</span> SUB-PATTERN DETECTED!
+                </div>
+                <button class="subpattern-close" onclick="document.getElementById('subpatternAlert').style.display='none'">✕ Dismiss</button>
+            </div>
+            <div class="subpattern-content" id="subpatternContent">
+                <div class="subpattern-item continue-item">
+                    <div class="subpattern-model">🔵 CONTINUE Model</div>
+                    <div class="subpattern-value continue" id="subpatternContinue">--</div>
+                </div>
+                <div class="subpattern-item switch-item">
+                    <div class="subpattern-model">🟡 SWITCH Model</div>
+                    <div class="subpattern-value switch" id="subpatternSwitch">--</div>
+                </div>
+            </div>
+            <div class="subpattern-time" id="subpatternTime"></div>
+        </div>
+
+        <!-- DUAL MODEL PREDICTION SECTION -->
         <div class="prediction-section">
-            <h2>🎯 DUAL MODEL 3-STEP PATTERN RECOGNITION SYSTEM</h2>
+            <h2>🎯 DUAL MODEL 3-STEP PATTERN SYSTEM</h2>
             
             <div class="pattern-info-bar">
                 <div class="info-item">
-                    <span class="info-label">📐 Last 3 Results:</span>
+                    <span class="info-label">📐 LAST 3 RESULTS</span>
                     <span class="info-value" id="last3Results">-- → -- → --</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">🔍 Pattern Status:</span>
+                    <span class="info-label">🔍 PATTERN STATUS</span>
                     <span class="info-value" id="patternStatus">Checking...</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">🎯 Active Model:</span>
+                    <span class="info-label">🎯 ACTIVE MODEL</span>
                     <span class="info-value" id="activeModelDisplay">--</span>
                 </div>
             </div>
 
-            <!-- NEW: User Preference Selector -->
+            <!-- User Preference Selector -->
             <div class="preference-selector">
                 <div class="preference-title">🎮 SELECT PREDICTION MODEL</div>
                 <div class="preference-options">
@@ -222,20 +637,17 @@
                     <div class="col-protection">Active Model</div>
                     <div class="col-prediction">Prediction</div>
                     <div class="col-confidence">Confidence</div>
-                    <div class="col-description">Description</div>
                 </div>
-                
                 <div class="pattern-row" id="patternRow">
                     <div class="col-pattern" id="patternName">-- → -- → --</div>
                     <div class="col-protection" id="protectionType">--</div>
                     <div class="col-prediction" id="predictionGroup">--</div>
                     <div class="col-confidence" id="predictionConfidence">--%</div>
-                    <div class="col-description" id="patternDescription">--</div>
                 </div>
             </div>
 
-            <!-- NEW: Both Models Status Display -->
-            <div class="models-status" id="modelsStatus">
+            <!-- Models Status -->
+            <div class="models-status">
                 <div class="models-title">🔬 DUAL MODEL STATUS</div>
                 <div class="model-cards">
                     <div class="model-card continue-card" id="continueModelCard">
@@ -256,13 +668,14 @@
                 </div>
             </div>
 
+            <!-- Final Prediction -->
             <div class="final-prediction-card">
                 <div class="final-header">
                     <span class="final-icon">🏆</span>
                     <span class="final-title">AI FINAL PREDICTION</span>
                     <span class="final-vote" id="predictionType">(Model)</span>
                 </div>
-                <div class="final-group" id="finalGroup">
+                <div class="final-group">
                     <span class="final-group-icon" id="finalIcon">🎯</span>
                     <span class="final-group-name" id="finalName">--</span>
                     <span class="final-group-range" id="finalRange">--</span>
@@ -278,80 +691,41 @@
             </div>
         </div>
 
-        <!-- ============ AVAILABLE PATTERNS REFERENCE (UPDATED for v11.0) ============ -->
+        <!-- Pattern Reference -->
         <div class="patterns-reference">
             <div class="section-header">
-                <h2>📚 Available 3-Step Patterns (6 Total - TRIGGER Only)</h2>
+                <h2>📚 3-STEP PATTERNS (6 Total - TRIGGER)</h2>
             </div>
             <div class="patterns-grid">
-                <div class="pattern-card">
-                    <div class="pattern-3step">LOW → HIGH → MEDIUM</div>
-                    <div class="pattern-actions">🎯 TRIGGER only - activates dual models</div>
-                </div>
-                <div class="pattern-card">
-                    <div class="pattern-3step">HIGH → LOW → MEDIUM</div>
-                    <div class="pattern-actions">🎯 TRIGGER only - activates dual models</div>
-                </div>
-                <div class="pattern-card">
-                    <div class="pattern-3step">MEDIUM → LOW → HIGH</div>
-                    <div class="pattern-actions">🎯 TRIGGER only - activates dual models</div>
-                </div>
-                <div class="pattern-card">
-                    <div class="pattern-3step">MEDIUM → HIGH → LOW</div>
-                    <div class="pattern-actions">🎯 TRIGGER only - activates dual models</div>
-                </div>
-                <div class="pattern-card">
-                    <div class="pattern-3step">LOW → MEDIUM → HIGH</div>
-                    <div class="pattern-actions">🎯 TRIGGER only - activates dual models</div>
-                </div>
-                <div class="pattern-card">
-                    <div class="pattern-3step">HIGH → MEDIUM → LOW</div>
-                    <div class="pattern-actions">🎯 TRIGGER only - activates dual models</div>
-                </div>
-            </div>
-            <div class="pattern-note">
-                💡 <strong>How it works (v11.0 Dual Model System):</strong><br>
-                🔹 <strong>Pattern Detection:</strong> When one of the 6 patterns is detected, DUAL MODELS ACTIVATE.<br>
-                🔹 <strong>🔵 CONTINUE Model:</strong> Always predicts LAST result (updates dynamically)<br>
-                🔹 <strong>🟡 SWITCH Model:</strong> Always predicts PREVIOUS result (updates dynamically)<br>
-                🔹 <strong>🎯 Selector Model:</strong> Learns which model works best for each pattern<br>
-                🔹 <strong>👤 User Preference:</strong> You can choose CONTINUE only, SWITCH only, or AUTO<br>
-                🔹 <strong>Wrong Prediction:</strong> Same model continues with updated values<br>
-                🔹 <strong>Correct Prediction:</strong> Prediction mode ends, returns to WAIT mode<br>
-                ⏳ <strong>WAIT mode:</strong> No pattern detected yet - waiting for 3 results
+                <div class="pattern-card"><div class="pattern-3step">LOW → HIGH → MEDIUM</div><div>🎯 Activates Dual Models</div></div>
+                <div class="pattern-card"><div class="pattern-3step">HIGH → LOW → MEDIUM</div><div>🎯 Activates Dual Models</div></div>
+                <div class="pattern-card"><div class="pattern-3step">MEDIUM → LOW → HIGH</div><div>🎯 Activates Dual Models</div></div>
+                <div class="pattern-card"><div class="pattern-3step">MEDIUM → HIGH → LOW</div><div>🎯 Activates Dual Models</div></div>
+                <div class="pattern-card"><div class="pattern-3step">LOW → MEDIUM → HIGH</div><div>🎯 Activates Dual Models</div></div>
+                <div class="pattern-card"><div class="pattern-3step">HIGH → MEDIUM → LOW</div><div>🎯 Activates Dual Models</div></div>
             </div>
         </div>
 
+        <!-- Group Stats -->
         <div class="group-stats">
             <div class="group-stat low-group">
-                <div class="group-header">
-                    <span class="group-icon">🔴</span>
-                    <span class="group-title">LOW</span>
-                    <span class="group-range">(3-9)</span>
-                </div>
+                <div class="group-header"><span class="group-icon">🔴</span> <span class="group-title">LOW</span> <span class="group-range">(3-9)</span></div>
                 <div class="group-probability" id="lowProb">0%</div>
                 <div class="group-trend" id="lowTrend">-</div>
             </div>
             <div class="group-stat medium-group">
-                <div class="group-header">
-                    <span class="group-icon">🟡</span>
-                    <span class="group-title">MEDIUM</span>
-                    <span class="group-range">(10-11)</span>
-                </div>
+                <div class="group-header"><span class="group-icon">🟡</span> <span class="group-title">MEDIUM</span> <span class="group-range">(10-11)</span></div>
                 <div class="group-probability" id="mediumProb">0%</div>
                 <div class="group-trend" id="mediumTrend">-</div>
             </div>
             <div class="group-stat high-group">
-                <div class="group-header">
-                    <span class="group-icon">🟢</span>
-                    <span class="group-title">HIGH</span>
-                    <span class="group-range">(12-18)</span>
-                </div>
+                <div class="group-header"><span class="group-icon">🟢</span> <span class="group-title">HIGH</span> <span class="group-range">(12-18)</span></div>
                 <div class="group-probability" id="highProb">0%</div>
                 <div class="group-trend" id="highTrend">-</div>
             </div>
         </div>
 
+        <!-- History Section -->
         <div class="history-section">
             <div class="section-header">
                 <h2>📋 PREDICTION HISTORY</h2>
@@ -359,20 +733,8 @@
             </div>
             <div class="table-container">
                 <table class="history-table" id="historyTable">
-                    <thead>
-                        <tr>
-                            <th>Time</th>
-                            <th>Dice</th>
-                            <th>Total</th>
-                            <th>3-Step Pattern (Trigger)</th>
-                            <th>Model Used</th>
-                            <th>Prediction</th>
-                            <th>Result</th>
-                        </tr>
-                    </thead>
-                    <tbody id="historyTableBody">
-                        <tr><td colspan="7">Loading history......</td></tr>
-                    </tbody>
+                    <thead><tr><th>Time</th><th>Dice</th><th>Total</th><th>Pattern</th><th>Model</th><th>Prediction</th><th>Result</th></tr></thead>
+                    <tbody id="historyTableBody"><tr><td colspan="7">Loading history...</td></tr></tbody>
                 </table>
             </div>
             <div class="pagination-controls">
@@ -382,15 +744,13 @@
             </div>
         </div>
 
+        <!-- Recent Results -->
         <div class="recent-section">
-            <div class="section-header">
-                <h2>📊 Recent Results</h2>
-            </div>
-            <div class="results-grid" id="resultsGrid">
-                <div class="loading">Loading results...</div>
-            </div>
+            <div class="section-header"><h2>📊 Recent Results</h2></div>
+            <div class="results-grid" id="resultsGrid"><div class="loading">Loading results...</div></div>
         </div>
 
+        <!-- Stats Section -->
         <div class="stats-section collapsible-section">
             <div class="stats-header" id="statsHeader">
                 <h2>📈 Number Statistics</h2>
@@ -399,22 +759,15 @@
             <div class="stats-content" id="statsContent" style="display: none;">
                 <div class="table-container">
                     <table class="stats-table" id="statsTable">
-                        <thead>
-                            <tr><th>Number</th><th>Group</th><th>Frequency</th><th>Percentage</th><th>Last Seen</th></tr>
-                        </thead>
-                        <tbody id="statsTableBody">
-                            <tr><td colspan="5">Loading statistics......</td></tr>
-                        </tbody>
+                        <thead><tr><th>Number</th><th>Group</th><th>Frequency</th><th>Percentage</th><th>Last Seen</th></tr></thead>
+                        <tbody id="statsTableBody"><tr><td colspan="5">Loading statistics...</td></tr></tbody>
                     </table>
                 </div>
             </div>
         </div>
 
         <div class="auto-refresh-control">
-            <label class="switch">
-                <input type="checkbox" id="autoRefreshToggle" checked>
-                <span class="slider round"></span>
-            </label>
+            <label class="switch"><input type="checkbox" id="autoRefreshToggle" checked><span class="slider round"></span></label>
             <span>Auto Refresh (3s)</span>
             <span class="refresh-timer" id="refreshTimer">3s</span>
         </div>
