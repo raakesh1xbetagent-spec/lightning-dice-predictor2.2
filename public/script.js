@@ -1,7 +1,7 @@
 // ============================================================
-// COMPLETE script.js (UPDATED FOR v11.1 - Dual Model with Selector + Sub-Pattern Detection)
-// Features: 3-Step Pattern Detection (TRIGGER) | CONTINUE & SWITCH Models | Selector Model
-// NEW: Sub-Pattern Detection UI | Two Telegram Bots Support | Modern UI
+// COMPLETE script.js (UPDATED FOR v11.3 - Independent Dual Model)
+// Features: 3-Step Pattern Detection | CONTINUE & SWITCH Models | Selector Model
+// NEW: Unified table with CONTINUE, SWITCH, FINAL columns with color coding
 // ============================================================
 
 class LightningDiceApp {
@@ -36,7 +36,7 @@ class LightningDiceApp {
     }
     
     async init() {
-        console.log('🚀 Initializing Dual Model 3-Step Pattern AI System v11.1...');
+        console.log('🚀 Initializing Independent Dual Model 3-Step Pattern AI System v11.3...');
         this.bindEvents();
         
         await this.loadUserPreference();
@@ -172,12 +172,10 @@ class LightningDiceApp {
         const last3Container = document.getElementById('last3Results');
         const patternStatusEl = document.getElementById('patternStatus');
         
-        if (!last3Container) return;
-        
         if (this.allResults.length >= 3) {
             const last3 = this.allResults.slice(0, 3).map(r => r.group);
             const patternString = `${last3[0]} → ${last3[1]} → ${last3[2]}`;
-            last3Container.innerHTML = `<strong>${patternString}</strong>`;
+            if (last3Container) last3Container.innerHTML = `<strong>${patternString}</strong>`;
             
             const isMatch = this.checkPatternMatch(last3);
             if (patternStatusEl) {
@@ -188,7 +186,7 @@ class LightningDiceApp {
                 }
             }
         } else {
-            last3Container.innerHTML = `<strong>-- → -- → --</strong> <span style="color:#fbbf24;">(Need ${3 - this.allResults.length} more results)</span>`;
+            if (last3Container) last3Container.innerHTML = `<strong>-- → -- → --</strong> <span style="color:#fbbf24;">(Need ${3 - this.allResults.length} more results)</span>`;
             if (patternStatusEl) {
                 patternStatusEl.innerHTML = '<span class="status-wait">⏳ Waiting for 3 results...</span>';
             }
@@ -241,41 +239,37 @@ class LightningDiceApp {
         connect();
     }
     
-    // NEW v11.1: Handle sub-pattern alerts
     handleSubPatternAlert(data) {
         console.log('🔍 Showing sub-pattern alert:', data);
         
-        const alertDiv = document.getElementById('subpatternAlert');
-        const continuePatternEl = document.getElementById('subpatternContinue');
-        const switchPatternEl = document.getElementById('subpatternSwitch');
-        const timeEl = document.getElementById('subpatternTime');
+        const alertDiv = document.getElementById('subAlert');
+        const continuePatternEl = document.getElementById('subContinueVal');
+        const switchPatternEl = document.getElementById('subSwitchVal');
+        const timeEl = document.getElementById('subTime');
         
         if (!alertDiv) return;
         
-        // Update content
         if (continuePatternEl) {
-            continuePatternEl.innerHTML = `${data.subPattern}<br><span style="font-size:10px;">Current: ${data.currentPattern}</span>`;
+            continuePatternEl.innerHTML = `${data.subPattern}<br><span style="font-size:9px;">Current: ${data.currentPattern || '--'}</span>`;
         }
         if (switchPatternEl) {
-            switchPatternEl.innerHTML = `${data.subPattern}<br><span style="font-size:10px;">Current: ${data.currentPattern}</span>`;
+            switchPatternEl.innerHTML = `${data.subPattern}<br><span style="font-size:9px;">Current: ${data.currentPattern || '--'}</span>`;
         }
         if (timeEl) {
             timeEl.innerHTML = `🕐 Detected: ${new Date(data.timestamp).toLocaleTimeString()}`;
         }
         
-        // Show alert with animation
         alertDiv.style.display = 'block';
         alertDiv.style.animation = 'none';
         setTimeout(() => {
             alertDiv.style.animation = 'slideIn 0.5s ease';
         }, 10);
         
-        // Auto-hide after 15 seconds
         setTimeout(() => {
             if (alertDiv.style.display !== 'none') {
                 alertDiv.style.display = 'none';
             }
-        }, 15000);
+        }, 12000);
     }
     
     handleRealtimeUpdate(data) {
@@ -286,10 +280,6 @@ class LightningDiceApp {
                 return new Date(b.timestamp) - new Date(a.timestamp);
             });
             console.log(`📊 Updated allResults with ${this.allResults.length} entries`);
-            if (this.allResults.length >= 3) {
-                const last3 = this.allResults.slice(0, 3).map(r => r.group);
-                console.log(`📊 Last 3 pattern: ${last3.join(' → ')}`);
-            }
             this.updateRecentResultsDisplay();
             this.updateStatisticsTable();
             this.updateGroupProbabilities();
@@ -313,7 +303,7 @@ class LightningDiceApp {
         }
         
         if (data.prediction && data.result) {
-            const predictedGroup = data.prediction.predictedGroup || data.prediction.ensemble || '--';
+            const predictedGroup = data.prediction.predictedGroup || '--';
             const pattern3step = data.prediction.pattern3step || data.prediction.pattern || '--';
             
             if (predictedGroup !== 'WAITING' && predictedGroup !== '--' && pattern3step !== '--') {
@@ -332,13 +322,13 @@ class LightningDiceApp {
                     continueValue: data.prediction.dynamicContinueValue || data.prediction.continueValue,
                     switchValue: data.prediction.dynamicSwitchValue || data.prediction.switchValue,
                     continueModelPrediction: data.prediction.continueModelPrediction,
-                    switchModelPrediction: data.prediction.switchModelPrediction
+                    switchModelPrediction: data.prediction.switchModelPrediction,
+                    continuePrediction: data.prediction.continueModelPrediction,
+                    switchPrediction: data.prediction.switchModelPrediction
                 };
                 this.predictionHistory.unshift(newPrediction);
                 if (this.predictionHistory.length > 1000) this.predictionHistory.pop();
-                console.log(`✅ Added valid prediction to history: ${predictedGroup} using ${newPrediction.protectionType} model`);
-            } else {
-                console.log(`⚠️ Skipping WAITING prediction in history`);
+                console.log(`✅ Added valid prediction to history: ${predictedGroup}`);
             }
             this.renderHistoryTable();
         }
@@ -351,11 +341,6 @@ class LightningDiceApp {
         if (data.prediction) {
             this.currentPrediction = data.prediction;
             this.displayPrediction(data.prediction);
-        }
-        
-        if (data.prediction && data.prediction.modelsStatus) {
-            this.modelsStatus = data.prediction.modelsStatus;
-            this.updateModelsStatusDisplay();
         }
         
         if (data.stats) this.updateStatsDisplay(data.stats);
@@ -373,57 +358,8 @@ class LightningDiceApp {
         }
     }
     
-    updateModelsStatusDisplay() {
-        const continueModelValue = document.getElementById('continueModelValue');
-        const switchModelValue = document.getElementById('switchModelValue');
-        const continueModelAccuracy = document.getElementById('continueModelAccuracy');
-        const switchModelAccuracy = document.getElementById('switchModelAccuracy');
-        const continueModelStatus = document.getElementById('continueModelStatus');
-        const switchModelStatus = document.getElementById('switchModelStatus');
-        const selectorDecision = document.getElementById('selectorDecision');
-        const continueCard = document.getElementById('continueModelCard');
-        const switchCard = document.getElementById('switchModelCard');
-        
-        if (!this.modelsStatus) return;
-        
-        const continueStatus = this.modelsStatus.continue;
-        const switchStatus = this.modelsStatus.switch;
-        const activeModel = this.modelsStatus.activeModel;
-        const userPref = this.modelsStatus.userPreference || this.userPreference;
-        
-        if (continueModelValue) continueModelValue.textContent = continueStatus?.currentValue || '--';
-        if (switchModelValue) switchModelValue.textContent = switchStatus?.currentValue || '--';
-        if (continueModelAccuracy) continueModelAccuracy.textContent = `Accuracy: ${continueStatus?.accuracy?.toFixed(1) || 0}%`;
-        if (switchModelAccuracy) switchModelAccuracy.textContent = `Accuracy: ${switchStatus?.accuracy?.toFixed(1) || 0}%`;
-        
-        if (continueModelStatus) {
-            continueModelStatus.innerHTML = continueStatus?.isActive ? 
-                '<span class="status-active">🟢 ACTIVE</span>' : 
-                '<span class="status-inactive">⚪ INACTIVE</span>';
-        }
-        if (switchModelStatus) {
-            switchModelStatus.innerHTML = switchStatus?.isActive ? 
-                '<span class="status-active">🟢 ACTIVE</span>' : 
-                '<span class="status-inactive">⚪ INACTIVE</span>';
-        }
-        
-        if (continueCard) {
-            if (activeModel === 'CONTINUE') continueCard.classList.add('active-card');
-            else continueCard.classList.remove('active-card');
-        }
-        if (switchCard) {
-            if (activeModel === 'SWITCH') switchCard.classList.add('active-card');
-            else switchCard.classList.remove('active-card');
-        }
-        
-        if (selectorDecision) {
-            selectorDecision.innerHTML = `🎯 Selector: Active Model = ${activeModel || 'WAIT'} | User Pref: ${userPref}`;
-        }
-    }
-    
     displayPrediction(prediction) {
-        if (!prediction) {
-            console.log('⚠️ No prediction data available');
+        if (!prediction || prediction.waitingForData || prediction.status === 'WAITING') {
             this.showWaitingState();
             return;
         }
@@ -434,33 +370,23 @@ class LightningDiceApp {
         const protectionTypeEl = document.getElementById('protectionType');
         const predictionGroupEl = document.getElementById('predictionGroup');
         const predictionConfidenceEl = document.getElementById('predictionConfidence');
-        
-        const finalIcon = document.getElementById('finalIcon');
         const finalName = document.getElementById('finalName');
-        const finalRange = document.getElementById('finalRange');
-        const confidenceFill = document.getElementById('confidenceFill');
         const finalConfidence = document.getElementById('finalConfidence');
         const finalExplanation = document.getElementById('finalExplanation');
-        const predictionType = document.getElementById('predictionType');
+        const confidenceFill = document.getElementById('confidenceFill');
         const finalWeights = document.getElementById('finalWeights');
         const activeModelDisplay = document.getElementById('activeModelDisplay');
         
-        if (prediction.waitingForData || prediction.status === 'WAITING') {
-            this.showWaitingState();
-            return;
-        }
-        
         const pattern3step = prediction.pattern3step || prediction.pattern || '--';
         const activeModel = prediction.activeModel || prediction.protectionType || '--';
-        const predictedGroup = prediction.predictedGroup || prediction.ensemble || '--';
-        const confidence = prediction.confidence || prediction.ensembleConfidence || 50;
+        const predictedGroup = prediction.predictedGroup || '--';
+        const confidence = prediction.confidence || 50;
         
         const continueModelPrediction = prediction.continueModelPrediction || prediction.continueGroup || '--';
         const switchModelPrediction = prediction.switchModelPrediction || prediction.switchGroup || '--';
         const continueValue = prediction.dynamicContinueValue || prediction.continueValue || continueModelPrediction;
         const switchValue = prediction.dynamicSwitchValue || prediction.switchValue || switchModelPrediction;
         const isPredictionModeActive = prediction.isPredictionModeActive || false;
-        const userPref = prediction.userPreference || this.userPreference;
         
         if (patternNameEl) patternNameEl.innerHTML = `<span class="pattern-highlight">${pattern3step}</span>`;
         if (protectionTypeEl) {
@@ -471,22 +397,19 @@ class LightningDiceApp {
         if (predictionConfidenceEl) predictionConfidenceEl.textContent = `${confidence}%`;
         if (activeModelDisplay) activeModelDisplay.textContent = activeModel;
         
-        if (finalIcon) finalIcon.textContent = this.getGroupIcon(predictedGroup);
         if (finalName) finalName.textContent = predictedGroup;
-        if (finalRange) finalRange.textContent = `(${this.getGroupRange(predictedGroup)})`;
         if (confidenceFill) confidenceFill.style.width = `${confidence}%`;
         if (finalConfidence) finalConfidence.textContent = `${confidence}%`;
-        if (predictionType) predictionType.textContent = `(${activeModel} Model)`;
         
         if (finalExplanation) {
             if (isPredictionModeActive) {
                 finalExplanation.innerHTML = `
-                    <strong>🎯 DUAL MODEL PREDICTION MODE ACTIVE</strong><br>
-                    Pattern <strong>${pattern3step}</strong> detected.<br><br>
-                    🔵 <strong>CONTINUE Model</strong>: <strong style="color:#4ade80;">${continueModelPrediction}</strong><br>
-                    🟡 <strong>SWITCH Model</strong>: <strong style="color:#fbbf24;">${switchModelPrediction}</strong><br><br>
-                    🎯 <strong>Selected: ${activeModel} Model</strong> (User: ${userPref})<br>
-                    <span style="font-size:11px;">🔄 Values update automatically until correct.</span>
+                    <strong>🎯 INDEPENDENT DUAL MODEL ACTIVE</strong><br>
+                    Pattern: <strong>${pattern3step}</strong><br><br>
+                    🔵 CONTINUE: <strong style="color:#4ade80;">${continueModelPrediction}</strong><br>
+                    🟡 SWITCH: <strong style="color:#fbbf24;">${switchModelPrediction}</strong><br><br>
+                    🎯 FINAL: <strong>${predictedGroup}</strong> (${activeModel} Model)<br>
+                    <span style="font-size:11px;">✨ Models are INDEPENDENT - they don't affect each other</span>
                 `;
             } else {
                 finalExplanation.innerHTML = `Pattern <strong>${pattern3step}</strong> detected. Using <strong>${activeModel}</strong> model: predicting <strong>${predictedGroup}</strong> with ${confidence}% confidence.`;
@@ -510,12 +433,6 @@ class LightningDiceApp {
             `;
         }
         
-        if (prediction.modelsStatus) {
-            this.modelsStatus = prediction.modelsStatus;
-            this.updateModelsStatusDisplay();
-        }
-        
-        // Check for sub-pattern in prediction
         if (prediction.subPatternDetected) {
             this.handleSubPatternAlert({
                 subPattern: prediction.subPatternDetected,
@@ -534,7 +451,6 @@ class LightningDiceApp {
         const finalConfidence = document.getElementById('finalConfidence');
         const finalExplanation = document.getElementById('finalExplanation');
         const confidenceFill = document.getElementById('confidenceFill');
-        const predictionType = document.getElementById('predictionType');
         const finalWeights = document.getElementById('finalWeights');
         const activeModelDisplay = document.getElementById('activeModelDisplay');
         
@@ -546,7 +462,6 @@ class LightningDiceApp {
         if (finalName) finalName.textContent = 'WAITING';
         if (finalConfidence) finalConfidence.textContent = '0%';
         if (confidenceFill) confidenceFill.style.width = '0%';
-        if (predictionType) predictionType.textContent = '(WAIT MODE)';
         if (finalExplanation) {
             const needed = 3 - (this.allResults?.length || 0);
             finalExplanation.innerHTML = `⏳ Pattern recognition requires 3 results. Currently have ${this.allResults?.length || 0} results. ${needed > 0 ? `Need ${needed} more result(s).` : 'Analyzing pattern...'}`;
@@ -568,12 +483,13 @@ class LightningDiceApp {
         if (lightningBoostEl) lightningBoostEl.textContent = `${stats.lightningBoost || 0}%`;
     }
     
+    // NEW: Render history table with CONTINUE, SWITCH, FINAL columns
     renderHistoryTable() {
-        const tbody = document.getElementById('historyTableBody');
+        const tbody = document.getElementById('historyBody');
         if (!tbody) return;
         
         if (!this.predictionHistory || this.predictionHistory.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8">No predictions yet. Waiting for pattern match...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7">No predictions yet. Waiting for pattern match...</td></tr>';
             this.updatePaginationControls();
             return;
         }
@@ -582,47 +498,42 @@ class LightningDiceApp {
         const pageItems = this.predictionHistory.slice(startIndex, startIndex + this.itemsPerPage);
         
         if (pageItems.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8">No history data on this page...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7">No history data on this page...</td></tr>';
             this.updatePaginationControls();
             return;
         }
         
         tbody.innerHTML = pageItems.map(item => {
-            const getIcon = (g) => {
-                if (g === 'LOW') return '🔴';
-                if (g === 'MEDIUM') return '🟡';
-                if (g === 'HIGH') return '🟢';
-                return '⚪';
-            };
+            const actualGroup = item.actualGroup;
+            const hasActual = actualGroup && actualGroup !== '?';
             
-            const getBadgeClass = (isCorrect, isPending) => {
-                if (isPending) return 'pending';
-                if (isCorrect === true) return 'correct';
-                if (isCorrect === false) return 'incorrect';
-                return '';
-            };
+            // CONTINUE prediction
+            const continuePred = item.continuePrediction || item.continueModelPrediction || item.continueValue || '--';
+            const continueCorrect = (continuePred === actualGroup && hasActual);
+            const continueDisplay = `${continuePred} ${continueCorrect ? '✓' : (hasActual ? '✗' : '')}`;
+            const continueClass = continueCorrect ? 'pred-correct' : (hasActual ? 'pred-wrong' : 'pred-pending');
             
-            const getCheckmark = (isCorrect, isPending) => {
-                if (isPending) return '⏳';
-                if (isCorrect === true) return '✓';
-                if (isCorrect === false) return '✗';
-                return '?';
-            };
+            // SWITCH prediction
+            const switchPred = item.switchPrediction || item.switchModelPrediction || item.switchValue || '--';
+            const switchCorrect = (switchPred === actualGroup && hasActual);
+            const switchDisplay = `${switchPred} ${switchCorrect ? '✓' : (hasActual ? '✗' : '')}`;
+            const switchClass = switchCorrect ? 'pred-correct' : (hasActual ? 'pred-wrong' : 'pred-pending');
             
-            const isPending = item.isPending || false;
-            const actualDisplay = item.actualGroup && item.actualGroup !== '?' ? `${getIcon(item.actualGroup)} ${item.actualGroup}` : 'Pending';
-            const protectionDisplay = item.protectionType || '--';
-            const protectionClass = protectionDisplay === 'CONTINUE' ? 'badge-continue' : (protectionDisplay === 'SWITCH' ? 'badge-switch' : '');
+            // FINAL prediction
+            const finalPred = item.predictedGroup || '--';
+            const finalCorrect = item.isCorrect === true;
+            const finalDisplay = `${finalPred} ${finalCorrect ? '✓' : (hasActual ? '✗' : '⏳')}`;
+            const finalClass = finalCorrect ? 'pred-correct' : (hasActual ? 'pred-wrong' : 'pred-pending');
             
             return `
                 <tr>
-                    <td style="font-size: 11px;">${item.time || '--'}</td>
-                    <td class="dice-values" style="font-size: 11px;">🎲 ${item.dice || '--'}</td>
-                    <td><strong>${item.total || '--'}</strong><br><small>${actualDisplay}</small></td>
-                    <td><span class="pattern-badge">${item.pattern3step || '--'}</span></td>
-                    <td><span class="protection-badge ${protectionClass}">${protectionDisplay}</span></td>
-                    <td><span class="prediction-badge">${getIcon(item.predictedGroup)} ${item.predictedGroup || '--'}</span></td>
-                    <td><span class="result-badge ${getBadgeClass(item.isCorrect, isPending)}">${getCheckmark(item.isCorrect, isPending)}</span></td>
+                    <td style="font-size: 10px;">${item.time || '--'}</td>
+                    <td style="font-size: 10px;">🎲 ${item.dice || '--'}</td>
+                    <td><strong>${item.total || '--'}</strong><br><small>${hasActual ? actualGroup : 'pending'}</small></td>
+                    <td><span class="pattern-badge" style="background:rgba(139,92,246,0.2);padding:4px 8px;border-radius:12px;font-size:9px;">${item.pattern3step || '--'}</span></td>
+                    <td class="prediction-cell ${continueClass}">${continueDisplay}</td>
+                    <td class="prediction-cell ${switchClass}">${switchDisplay}</td>
+                    <td class="prediction-cell ${finalClass}">${finalDisplay}</td>
                 </tr>
             `;
         }).join('');
@@ -632,11 +543,11 @@ class LightningDiceApp {
     
     updatePaginationControls() {
         const totalPages = Math.max(1, Math.ceil(this.predictionHistory.length / this.itemsPerPage));
-        const paginationInfo = document.getElementById('paginationInfo');
-        const prevBtn = document.getElementById('prevPageBtn');
-        const nextBtn = document.getElementById('nextPageBtn');
+        const pageInfo = document.getElementById('pageInfo');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
         
-        if (paginationInfo) paginationInfo.textContent = `Page ${this.currentPage} of ${totalPages}`;
+        if (pageInfo) pageInfo.textContent = `Page ${this.currentPage} of ${totalPages}`;
         if (prevBtn) prevBtn.disabled = this.currentPage === 1;
         if (nextBtn) nextBtn.disabled = this.currentPage === totalPages;
     }
@@ -657,18 +568,17 @@ class LightningDiceApp {
             const groupIcon = this.groups[result.group]?.icon || '🎲';
             
             return `
-                <div class="result-card ${isLightning ? 'lightning' : ''}">
-                    <div class="result-number">${groupIcon} ${result.total}</div>
-                    <div class="result-multiplier">${result.multiplier || 1}x</div>
-                    <div class="result-time">${time}</div>
-                    <div class="result-dice">${result.diceValues || '--'}</div>
+                <div class="result-box ${isLightning ? 'lightning' : ''}">
+                    <div>${groupIcon} ${result.total}</div>
+                    <div style="font-size:9px;">${result.multiplier || 1}x</div>
+                    <div style="font-size:8px;">${time}</div>
                 </div>
             `;
         }).join('');
     }
     
     updateStatisticsTable() {
-        const tbody = document.getElementById('statsTableBody');
+        const tbody = document.getElementById('statsBody');
         if (!tbody) return;
         
         if (!this.allResults || this.allResults.length === 0) {
@@ -712,12 +622,12 @@ class LightningDiceApp {
     
     updateGroupProbabilities() {
         if (!this.allResults || this.allResults.length === 0) {
-            const lowProb = document.getElementById('lowProb');
-            const mediumProb = document.getElementById('mediumProb');
-            const highProb = document.getElementById('highProb');
-            if (lowProb) lowProb.textContent = '0%';
-            if (mediumProb) mediumProb.textContent = '0%';
-            if (highProb) highProb.textContent = '0%';
+            const lowPercent = document.getElementById('lowPercent');
+            const mediumPercent = document.getElementById('mediumPercent');
+            const highPercent = document.getElementById('highPercent');
+            if (lowPercent) lowPercent.textContent = '0%';
+            if (mediumPercent) mediumPercent.textContent = '0%';
+            if (highPercent) highPercent.textContent = '0%';
             return;
         }
         
@@ -726,16 +636,16 @@ class LightningDiceApp {
         recentResults.forEach(r => { if (r && r.group) recentCount[r.group]++; });
         
         const total = recentResults.length || 1;
-        const lowProb = document.getElementById('lowProb');
-        const mediumProb = document.getElementById('mediumProb');
-        const highProb = document.getElementById('highProb');
+        const lowPercent = document.getElementById('lowPercent');
+        const mediumPercent = document.getElementById('mediumPercent');
+        const highPercent = document.getElementById('highPercent');
         const lowTrend = document.getElementById('lowTrend');
         const mediumTrend = document.getElementById('mediumTrend');
         const highTrend = document.getElementById('highTrend');
         
-        if (lowProb) lowProb.textContent = `${Math.round((recentCount.LOW / total) * 100)}%`;
-        if (mediumProb) mediumProb.textContent = `${Math.round((recentCount.MEDIUM / total) * 100)}%`;
-        if (highProb) highProb.textContent = `${Math.round((recentCount.HIGH / total) * 100)}%`;
+        if (lowPercent) lowPercent.textContent = `${Math.round((recentCount.LOW / total) * 100)}%`;
+        if (mediumPercent) mediumPercent.textContent = `${Math.round((recentCount.MEDIUM / total) * 100)}%`;
+        if (highPercent) highPercent.textContent = `${Math.round((recentCount.HIGH / total) * 100)}%`;
         if (lowTrend) lowTrend.textContent = this.getTrendText(recentCount.LOW, total);
         if (mediumTrend) mediumTrend.textContent = this.getTrendText(recentCount.MEDIUM, total);
         if (highTrend) highTrend.textContent = this.getTrendText(recentCount.HIGH, total);
@@ -805,8 +715,8 @@ class LightningDiceApp {
         const refreshBtn = document.getElementById('refreshBtn');
         if (refreshBtn) refreshBtn.addEventListener('click', () => this.loadInitialData());
         
-        const prevBtn = document.getElementById('prevPageBtn');
-        const nextBtn = document.getElementById('nextPageBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
         if (prevBtn) prevBtn.addEventListener('click', () => this.changePage(-1));
         if (nextBtn) nextBtn.addEventListener('click', () => this.changePage(1));
     }
@@ -821,10 +731,10 @@ class LightningDiceApp {
     }
     
     animateNewResult() {
-        const predictionBox = document.querySelector('.prediction-section');
-        if (predictionBox) {
-            predictionBox.style.animation = 'none';
-            setTimeout(() => predictionBox.style.animation = 'slideIn 0.3s ease', 10);
+        const predictionCard = document.querySelector('.prediction-card');
+        if (predictionCard) {
+            predictionCard.style.animation = 'none';
+            setTimeout(() => predictionCard.style.animation = 'slideIn 0.3s ease', 10);
         }
     }
 }
