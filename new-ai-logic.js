@@ -1,5 +1,5 @@
 // ============================================================
-// new-ai-logic.js (v11.2 - Independent Dual Model with Selector + Sub-Pattern Detection)
+// new-ai-logic.js (v11.0 - Dual Model with Selector)
 // 
 // 6 Patterns for 3-Step Detection (ONLY for pattern detection trigger):
 // 1. LOW → HIGH → MEDIUM
@@ -9,11 +9,7 @@
 // 5. LOW → MEDIUM → HIGH
 // 6. HIGH → MEDIUM → LOW
 //
-// NEW v11.2 FEATURES:
-// - MODELS ARE INDEPENDENT: One model's success/failure does NOT affect the other
-// - Both models always stay active until they individually get correct
-// - Sub-Pattern Detection while in prediction mode
-// - Sub-Pattern Alert callbacks for Telegram & Web
+// NEW v11.0 DUAL MODEL SYSTEM:
 // - CONTINUE Model: Always predicts LAST result (dynamic update on wrong)
 // - SWITCH Model: Always predicts PREVIOUS result (dynamic update on wrong)
 // - Selector Model: Learns which model works best for each pattern
@@ -54,9 +50,10 @@ class ContinueModel {
         if (isCorrect) {
             this.correctPredictions++;
             this.isActive = false;
-            console.log(`   🔵 CONTINUE Model: CORRECT! Deactivating THIS model only.`);
+            console.log(`   🔵 CONTINUE Model: CORRECT! Deactivating.`);
         } else {
             this.consecutiveWrongCount++;
+            // Update dynamic value with actual result
             this.dynamicPreviousData = this.dynamicRecentData;
             this.dynamicRecentData = actualGroup;
             console.log(`   🔵 CONTINUE Model: WRONG! Updated LAST = ${this.dynamicRecentData}`);
@@ -120,9 +117,10 @@ class SwitchModel {
         if (isCorrect) {
             this.correctPredictions++;
             this.isActive = false;
-            console.log(`   🟡 SWITCH Model: CORRECT! Deactivating THIS model only.`);
+            console.log(`   🟡 SWITCH Model: CORRECT! Deactivating.`);
         } else {
             this.consecutiveWrongCount++;
+            // Update dynamic values with actual result
             this.dynamicPreviousData = this.dynamicRecentData;
             this.dynamicRecentData = actualGroup;
             console.log(`   🟡 SWITCH Model: WRONG! Updated PREVIOUS = ${this.dynamicPreviousData}`);
@@ -155,8 +153,9 @@ class SwitchModel {
 class SelectorModel {
     constructor() {
         this.name = "SELECTOR";
+        // Pattern-specific statistics for each model
         this.patternStats = {};
-        this.userPreference = "AUTO";
+        this.userPreference = "AUTO"; // AUTO, CONTINUE, SWITCH
     }
     
     setUserPreference(preference) {
@@ -207,6 +206,7 @@ class SelectorModel {
     }
     
     decide(patternString) {
+        // If user has explicit preference, use that
         if (this.userPreference === "CONTINUE") {
             return { decision: "CONTINUE", reason: "User selected CONTINUE only", method: "user_preference" };
         }
@@ -214,19 +214,25 @@ class SelectorModel {
             return { decision: "SWITCH", reason: "User selected SWITCH only", method: "user_preference" };
         }
         
+        // AUTO mode - decide based on historical data
         this.initializePattern(patternString);
         const stats = this.patternStats[patternString];
         
+        // Not enough data (less than 3 attempts each)
         if (stats.continueTotal < 3 && stats.switchTotal < 3) {
             console.log(`   🤖 Selector: Not enough data for ${patternString}, using CONTINUE as default`);
             return { decision: "CONTINUE", reason: "Not enough data yet", method: "default" };
         }
         
+        // Compare accuracies
         if (stats.continueAccuracy > stats.switchAccuracy) {
+            console.log(`   🤖 Selector: CONTINUE wins (${stats.continueAccuracy.toFixed(1)}% > ${stats.switchAccuracy.toFixed(1)}%)`);
             return { decision: "CONTINUE", reason: `Better accuracy: ${stats.continueAccuracy.toFixed(1)}% vs ${stats.switchAccuracy.toFixed(1)}%`, method: "historical" };
         } else if (stats.switchAccuracy > stats.continueAccuracy) {
+            console.log(`   🤖 Selector: SWITCH wins (${stats.switchAccuracy.toFixed(1)}% > ${stats.continueAccuracy.toFixed(1)}%)`);
             return { decision: "SWITCH", reason: `Better accuracy: ${stats.switchAccuracy.toFixed(1)}% vs ${stats.continueAccuracy.toFixed(1)}%`, method: "historical" };
         } else {
+            // Equal accuracy - check total attempts
             if (stats.continueTotal >= stats.switchTotal) {
                 return { decision: "CONTINUE", reason: "Equal accuracy, CONTINUE has more data", method: "tiebreaker" };
             } else {
@@ -262,9 +268,10 @@ class SelectorModel {
 
 class NewPatternAI {
     constructor() {
-        this.version = "11.2";
-        this.name = "Independent Dual Model 3-Step Pattern AI with Selector & Sub-Pattern Detection";
+        this.version = "11.0";
+        this.name = "Dual Model 3-Step Pattern AI with Selector";
         
+        // Define the 6 patterns (ONLY for detection trigger)
         this.patterns = [
             "LOW→HIGH→MEDIUM",
             "HIGH→LOW→MEDIUM",
@@ -274,6 +281,7 @@ class NewPatternAI {
             "HIGH→MEDIUM→LOW"
         ];
         
+        // Pattern mapping for display purposes only
         this.patternMapping = {
             "LOW→HIGH→MEDIUM": {
                 continueGroup: "MEDIUM",
@@ -319,29 +327,25 @@ class NewPatternAI {
             }
         };
         
+        // Dual Models
         this.continueModel = new ContinueModel();
         this.switchModel = new SwitchModel();
         this.selector = new SelectorModel();
         
-        this.activeModel = null;
+        // Which model is currently active
+        this.activeModel = null; // "CONTINUE", "SWITCH", or null
         this.currentPattern = null;
         
-        // NEW v11.2: Store both model predictions separately
-        this.currentContinuePrediction = null;
-        this.currentSwitchPrediction = null;
-        
-        // Sub-pattern tracking
-        this.subPatternDetected = null;
-        this.last3ResultsHistory = [];
-        this.subPatternCallback = null;
-        
+        // Pattern tracking history
         this.patternHistory = [];
         this.totalPredictions = 0;
         this.correctPredictions = 0;
         this.accuracy = 0;
         
+        // Pattern-specific learning data (for backward compatibility)
         this.patternOccurrences = {};
         
+        // Initialize pattern occurrences counter
         for (const pattern of this.patterns) {
             this.patternOccurrences[pattern] = {
                 count: 0,
@@ -356,89 +360,30 @@ class NewPatternAI {
         }
         
         console.log(`🤖 ${this.name} initialized with ${this.patterns.length} patterns`);
-        console.log(`📋 INDEPENDENT DUAL MODEL SYSTEM (v11.2):`);
-        console.log(`   🔵 CONTINUE Model: Always predicts LAST result (INDEPENDENT)`);
-        console.log(`   🟡 SWITCH Model: Always predicts PREVIOUS result (INDEPENDENT)`);
-        console.log(`   ✨ Models do NOT affect each other!`);
+        console.log(`📋 NEW DUAL MODEL SYSTEM (v11.0):`);
+        console.log(`   🔵 CONTINUE Model: Always predicts LAST result`);
+        console.log(`   🟡 SWITCH Model: Always predicts PREVIOUS result`);
         console.log(`   🎯 Selector Model: Learns which model works best per pattern`);
-        console.log(`   🔍 Sub-Pattern Detection: Detects patterns while in prediction mode`);
         console.log(`   👤 User can choose: CONTINUE only, SWITCH only, or AUTO (selector decides)`);
     }
     
     /**
-     * Set callback for sub-pattern detection
+     * Set user preference for model selection
      */
-    setSubPatternCallback(callback) {
-        this.subPatternCallback = callback;
-        console.log(`🔍 Sub-pattern callback registered`);
-    }
-    
-    /**
-     * Check for sub-patterns while in prediction mode
-     */
-    checkForSubPattern(last3Results) {
-        if (!last3Results || last3Results.length !== 3) {
-            return null;
-        }
-        
-        const patternString = this.getPatternString(last3Results);
-        
-        if (this.isPatternMatch(patternString)) {
-            const isDifferentPattern = (this.currentPattern !== patternString);
-            const isNewDetection = (this.subPatternDetected !== patternString);
-            
-            if (isDifferentPattern && isNewDetection) {
-                this.subPatternDetected = patternString;
-                
-                const patternInfo = this.patternMapping[patternString];
-                
-                console.log(`🔍 SUB-PATTERN DETECTED!`);
-                console.log(`   Current Active Pattern: ${this.currentPattern}`);
-                console.log(`   New Sub-Pattern: ${patternString}`);
-                
-                if (this.subPatternCallback) {
-                    this.subPatternCallback({
-                        type: 'SUB_PATTERN_DETECTED',
-                        currentPattern: this.currentPattern,
-                        subPattern: patternString,
-                        description: patternInfo?.description || 'Valid 3-step pattern',
-                        timestamp: new Date().toISOString(),
-                        continueModelValue: this.continueModel.dynamicRecentData,
-                        switchModelValue: this.switchModel.dynamicPreviousData,
-                        activeModel: this.activeModel
-                    });
-                }
-                
-                return {
-                    detected: true,
-                    currentPattern: this.currentPattern,
-                    subPattern: patternString,
-                    description: patternInfo?.description
-                };
-            }
-        }
-        
-        return { detected: false };
-    }
-    
-    getLastResults(count) {
-        const results = [];
-        for (let i = 0; i < this.patternHistory.length && results.length < count; i++) {
-            if (this.patternHistory[i].actualGroup) {
-                results.unshift(this.patternHistory[i].actualGroup);
-            }
-        }
-        return results;
-    }
-    
     setUserPreference(preference) {
         return this.selector.setUserPreference(preference);
     }
     
+    /**
+     * Get current user preference
+     */
     getUserPreference() {
         return this.selector.getUserPreference();
     }
     
+    /**
+     * Get last 3 results as a pattern string
+     */
     getPatternString(last3Results) {
         if (!last3Results || last3Results.length !== 3) {
             return null;
@@ -446,6 +391,9 @@ class NewPatternAI {
         return `${last3Results[0]}→${last3Results[1]}→${last3Results[2]}`;
     }
     
+    /**
+     * Get recent and previous data from pattern
+     */
     getPatternData(patternString) {
         const parts = patternString.split('→');
         if (parts.length !== 3) return null;
@@ -458,39 +406,41 @@ class NewPatternAI {
         };
     }
     
+    /**
+     * Check if a pattern matches any of the 6 defined patterns
+     */
     isPatternMatch(patternString) {
         return this.patterns.includes(patternString);
     }
     
+    /**
+     * Reset all models and go back to WAIT mode
+     */
     resetActivePattern() {
-        console.log(`🔄 Resetting models. Going back to WAIT mode.`);
+        console.log(`🔄 Resetting all models. Going back to WAIT mode.`);
         this.continueModel.reset();
         this.switchModel.reset();
         this.activeModel = null;
         this.currentPattern = null;
-        this.subPatternDetected = null;
-        this.currentContinuePrediction = null;
-        this.currentSwitchPrediction = null;
     }
     
+    /**
+     * Get current status of both models
+     */
     getModelsStatus() {
         return {
             continue: this.continueModel.getStatus(),
             switch: this.switchModel.getStatus(),
             activeModel: this.activeModel,
             currentPattern: this.currentPattern,
-            userPreference: this.selector.getUserPreference(),
-            subPatternDetected: this.subPatternDetected
+            userPreference: this.selector.getUserPreference()
         };
     }
     
+    /**
+     * MAIN PREDICTION FUNCTION
+     */
     predict(last3Results, protectionType = null) {
-        // Check for sub-patterns when in prediction mode
-        if (this.activeModel && (this.continueModel.isActive || this.switchModel.isActive)) {
-            if (last3Results && last3Results.length === 3) {
-                this.checkForSubPattern(last3Results);
-            }
-        }
         
         // CASE 1: Active model exists - we are in prediction mode
         if (this.activeModel && (this.continueModel.isActive || this.switchModel.isActive)) {
@@ -500,15 +450,12 @@ class NewPatternAI {
             if (isContinueActive || isSwitchActive) {
                 const activeModelInst = this.activeModel === "CONTINUE" ? this.continueModel : this.switchModel;
                 const prediction = activeModelInst.predict();
-                
-                // Store both model predictions for display
-                this.currentContinuePrediction = this.continueModel.isActive ? this.continueModel.predict().predictedGroup : this.continueModel.dynamicRecentData;
-                this.currentSwitchPrediction = this.switchModel.isActive ? this.switchModel.predict().predictedGroup : this.switchModel.dynamicPreviousData;
+                const otherModelInst = this.activeModel === "CONTINUE" ? this.switchModel : this.continueModel;
                 
                 console.log(`🔄 Active prediction mode with ${this.activeModel} Model`);
-                console.log(`   🔵 CONTINUE predicts: ${this.currentContinuePrediction}`);
-                console.log(`   🟡 SWITCH predicts: ${this.currentSwitchPrediction}`);
+                console.log(`   ${this.activeModel} Model prediction: ${prediction.predictedGroup}`);
                 
+                // Calculate confidence based on historical data
                 let confidence = 70;
                 const stats = this.selector.getPatternStats(this.currentPattern);
                 if (this.activeModel === "CONTINUE") {
@@ -527,9 +474,7 @@ class NewPatternAI {
                     isRetry: activeModelInst.consecutiveWrongCount > 0,
                     retryNumber: activeModelInst.consecutiveWrongCount,
                     continueValue: this.continueModel.dynamicRecentData,
-                    switchValue: this.switchModel.dynamicPreviousData,
-                    continuePrediction: this.currentContinuePrediction,
-                    switchPrediction: this.currentSwitchPrediction
+                    switchValue: this.switchModel.dynamicPreviousData
                 });
                 
                 return {
@@ -540,8 +485,8 @@ class NewPatternAI {
                     confidence: Math.round(confidence),
                     continueValue: this.continueModel.dynamicRecentData,
                     switchValue: this.switchModel.dynamicPreviousData,
-                    continueModelPrediction: this.currentContinuePrediction,
-                    switchModelPrediction: this.currentSwitchPrediction,
+                    continueModelPrediction: this.continueModel.isActive ? this.continueModel.predict().predictedGroup : null,
+                    switchModelPrediction: this.switchModel.isActive ? this.switchModel.predict().predictedGroup : null,
                     description: prediction.description,
                     waitingForData: false,
                     isRetry: activeModelInst.consecutiveWrongCount > 0,
@@ -549,8 +494,7 @@ class NewPatternAI {
                     activeModel: this.activeModel,
                     userPreference: this.selector.getUserPreference(),
                     message: `${this.activeModel} Model active${activeModelInst.consecutiveWrongCount > 0 ? ` (Retry #${activeModelInst.consecutiveWrongCount})` : ''}`,
-                    last3Results: last3Results,
-                    subPatternDetected: this.subPatternDetected
+                    last3Results: last3Results
                 };
             }
         }
@@ -592,11 +536,12 @@ class NewPatternAI {
         
         const patternData = this.getPatternData(patternString);
         this.currentPattern = patternString;
-        this.subPatternDetected = null;
         
+        // Initialize both models with pattern data
         this.continueModel.initialize(patternData);
         this.switchModel.initialize(patternData);
         
+        // Decide which model to use
         let selectedModel = protectionType;
         let decisionInfo = null;
         
@@ -610,14 +555,10 @@ class NewPatternAI {
         }
         
         this.activeModel = selectedModel;
-        
-        // Store both model predictions
-        this.currentContinuePrediction = this.continueModel.predict().predictedGroup;
-        this.currentSwitchPrediction = this.switchModel.predict().predictedGroup;
-        
         const activeModelInst = this.activeModel === "CONTINUE" ? this.continueModel : this.switchModel;
         const prediction = activeModelInst.predict();
         
+        // Calculate confidence
         let confidence = 70;
         const stats = this.selector.getPatternStats(patternString);
         if (this.activeModel === "CONTINUE") {
@@ -636,16 +577,16 @@ class NewPatternAI {
             isRetry: false,
             retryNumber: 0,
             continueValue: this.continueModel.dynamicRecentData,
-            switchValue: this.switchModel.dynamicPreviousData,
-            continuePrediction: this.currentContinuePrediction,
-            switchPrediction: this.currentSwitchPrediction
+            switchValue: this.switchModel.dynamicPreviousData
         });
         
         console.log(`🎯 PREDICTION MODE ACTIVATED with ${selectedModel} Model`);
         console.log(`   Pattern: ${patternString}`);
-        console.log(`   🔵 CONTINUE predicts: ${this.currentContinuePrediction}`);
-        console.log(`   🟡 SWITCH predicts: ${this.currentSwitchPrediction}`);
-        console.log(`   🎯 FINAL prediction (${selectedModel}): ${prediction.predictedGroup} (${Math.round(confidence)}% confidence)`);
+        console.log(`   ${selectedModel} Model prediction: ${prediction.predictedGroup} (${Math.round(confidence)}% confidence)`);
+        console.log(`   🔵 CONTINUE Model would predict: ${this.continueModel.predict().predictedGroup}`);
+        console.log(`   🟡 SWITCH Model would predict: ${this.switchModel.predict().predictedGroup}`);
+        console.log(`   📌 Will retry with SAME model until CORRECT`);
+        console.log(`   📌 Values update dynamically with each new result`);
         
         return {
             status: "PREDICTION_READY",
@@ -655,20 +596,22 @@ class NewPatternAI {
             confidence: Math.round(confidence),
             continueValue: this.continueModel.dynamicRecentData,
             switchValue: this.switchModel.dynamicPreviousData,
-            continueModelPrediction: this.currentContinuePrediction,
-            switchModelPrediction: this.currentSwitchPrediction,
+            continueModelPrediction: this.continueModel.predict().predictedGroup,
+            switchModelPrediction: this.switchModel.predict().predictedGroup,
             description: prediction.description,
             decisionInfo: decisionInfo,
             waitingForData: false,
             isActive: true,
             activeModel: this.activeModel,
             userPreference: this.selector.getUserPreference(),
-            message: `Pattern matched! Using ${selectedModel} Model. Models are INDEPENDENT.`,
-            last3Results: last3Results,
-            subPatternDetected: null
+            message: `Pattern matched! Using ${selectedModel} Model.`,
+            last3Results: last3Results
         };
     }
     
+    /**
+     * Update AI with actual result
+     */
     updateWithResult(actualGroup) {
         const pendingIndex = this.patternHistory.findIndex(p => p.actualGroup === null);
         
@@ -684,12 +627,14 @@ class NewPatternAI {
         prediction.actualGroup = actualGroup;
         prediction.isCorrect = (prediction.predictedGroup === actualGroup);
         
+        // Update overall statistics
         this.totalPredictions++;
         if (prediction.isCorrect) {
             this.correctPredictions++;
         }
         this.accuracy = (this.correctPredictions / this.totalPredictions) * 100;
         
+        // Update pattern-specific learning data (backward compatible)
         const occurrence = this.patternOccurrences[prediction.pattern];
         if (occurrence) {
             occurrence.count++;
@@ -710,95 +655,106 @@ class NewPatternAI {
             }
         }
         
+        // Update Selector with result
         this.selector.recordResult(prediction.pattern, prediction.protectionType, prediction.isCorrect);
         
-        // ★★★ KEY CHANGE: Update BOTH models independently ★★★
-        // Each model updates itself based on actual result
-        // They do NOT affect each other's active status
+        // Update the active model
+        let modelUpdateResult = null;
+        let otherModelResult = null;
         
-        const continueResult = this.continueModel.updateWithResult(actualGroup);
-        const switchResult = this.switchModel.updateWithResult(actualGroup);
+        if (prediction.protectionType === "CONTINUE") {
+            modelUpdateResult = this.continueModel.updateWithResult(actualGroup);
+            // SWITCH model also updates its values (for display)
+            if (this.switchModel.isActive) {
+                otherModelResult = this.switchModel.updateWithResult(actualGroup);
+            } else {
+                // Update SWITCH model values even if not active (for display)
+                this.switchModel.dynamicPreviousData = this.switchModel.dynamicRecentData;
+                this.switchModel.dynamicRecentData = actualGroup;
+            }
+        } else {
+            modelUpdateResult = this.switchModel.updateWithResult(actualGroup);
+            // CONTINUE model also updates its values (for display)
+            if (this.continueModel.isActive) {
+                otherModelResult = this.continueModel.updateWithResult(actualGroup);
+            } else {
+                // Update CONTINUE model values even if not active (for display)
+                this.continueModel.dynamicPreviousData = this.continueModel.dynamicRecentData;
+                this.continueModel.dynamicRecentData = actualGroup;
+            }
+        }
         
         console.log(`📊 UPDATE RESULT:`);
         console.log(`   Pattern: ${prediction.pattern}`);
-        console.log(`   🔵 CONTINUE: ${continueResult.isCorrect ? '✓ CORRECT' : '✗ WRONG'} - ${continueResult.keepActive ? 'KEEP ACTIVE' : 'DEACTIVATED'}`);
-        console.log(`   🟡 SWITCH: ${switchResult.isCorrect ? '✓ CORRECT' : '✗ WRONG'} - ${switchResult.keepActive ? 'KEEP ACTIVE' : 'DEACTIVATED'}`);
-        console.log(`   🎯 Active Model (for final): ${prediction.protectionType}`);
+        console.log(`   Active Model: ${prediction.protectionType}`);
         console.log(`   Predicted: ${prediction.predictedGroup} → Actual: ${actualGroup}`);
+        console.log(`   Result: ${prediction.isCorrect ? '✓ CORRECT' : '✗ WRONG'}`);
         
+        // Get selector stats for display
         const selectorStats = this.selector.getPatternStats(prediction.pattern);
-        console.log(`   Selector Stats - CONTINUE: ${selectorStats.continueAccuracy.toFixed(1)}% | SWITCH: ${selectorStats.switchAccuracy.toFixed(1)}%`);
+        console.log(`   Selector Stats - CONTINUE: ${selectorStats.continueAccuracy.toFixed(1)}% (${selectorStats.continueCorrect}/${selectorStats.continueTotal}) | SWITCH: ${selectorStats.switchAccuracy.toFixed(1)}% (${selectorStats.switchCorrect}/${selectorStats.switchTotal})`);
         console.log(`   Overall Accuracy: ${this.accuracy.toFixed(1)}% (${this.correctPredictions}/${this.totalPredictions})`);
         
-        // Update current predictions for next round
-        this.currentContinuePrediction = this.continueModel.isActive ? this.continueModel.predict().predictedGroup : this.continueModel.dynamicRecentData;
-        this.currentSwitchPrediction = this.switchModel.isActive ? this.switchModel.predict().predictedGroup : this.switchModel.dynamicPreviousData;
-        
-        // Check if both models are now inactive (both got correct)
-        const bothInactive = (!this.continueModel.isActive && !this.switchModel.isActive);
-        
-        if (bothInactive) {
-            console.log(`✅ BOTH models are correct! Resetting to WAIT mode.`);
+        // Handle the result
+        if (prediction.isCorrect) {
+            console.log(`✅ CORRECT! Resetting all models. Going back to WAIT mode.`);
             this.resetActivePattern();
             
             return {
-                isCorrect: prediction.isCorrect,
+                isCorrect: true,
                 predictedGroup: prediction.predictedGroup,
                 actualGroup: actualGroup,
                 newAccuracy: this.accuracy,
                 resetPattern: true,
-                message: "Both models correct! Reset to WAIT mode.",
+                message: "Correct prediction! Reset to WAIT mode.",
                 modelUsed: prediction.protectionType,
-                selectorStats: selectorStats,
-                continueActive: this.continueModel.isActive,
-                switchActive: this.switchModel.isActive,
-                continueCorrect: continueResult.isCorrect,
-                switchCorrect: switchResult.isCorrect
+                selectorStats: selectorStats
             };
         } else {
-            console.log(`📊 Model status - CONTINUE: ${this.continueModel.isActive ? 'ACTIVE' : 'INACTIVE'}, SWITCH: ${this.switchModel.isActive ? 'ACTIVE' : 'INACTIVE'}`);
+            console.log(`❌ WRONG! Keeping ${prediction.protectionType} Model active.`);
+            console.log(`   Wrong count: ${modelUpdateResult?.keepActive ? this.continueModel.consecutiveWrongCount : this.switchModel.consecutiveWrongCount}`);
             
             return {
-                isCorrect: prediction.isCorrect,
+                isCorrect: false,
                 predictedGroup: prediction.predictedGroup,
                 actualGroup: actualGroup,
                 newAccuracy: this.accuracy,
                 keepPattern: true,
                 modelUsed: prediction.protectionType,
-                modelStillActive: true,
+                modelStillActive: modelUpdateResult?.keepActive || false,
                 newContinueValue: this.continueModel.dynamicRecentData,
                 newSwitchValue: this.switchModel.dynamicPreviousData,
                 selectorStats: selectorStats,
-                continueActive: this.continueModel.isActive,
-                switchActive: this.switchModel.isActive,
-                continueCorrect: continueResult.isCorrect,
-                switchCorrect: switchResult.isCorrect,
-                continuePrediction: this.currentContinuePrediction,
-                switchPrediction: this.currentSwitchPrediction,
-                message: `${prediction.protectionType} prediction was ${prediction.isCorrect ? 'correct' : 'wrong'}. Models continue independently.`
+                message: `Wrong prediction! ${prediction.protectionType} Model continues.`
             };
         }
     }
     
+    /**
+     * Update dynamic values externally
+     */
     updateWithNewResult(newResult) {
         if (this.activeModel && (this.continueModel.isActive || this.switchModel.isActive)) {
             console.log(`🔄 New result detected while in prediction mode: ${newResult}`);
             
-            // Update both models independently
-            this.continueModel.updateWithResult(newResult);
-            this.switchModel.updateWithResult(newResult);
-            
-            this.currentContinuePrediction = this.continueModel.isActive ? this.continueModel.predict().predictedGroup : this.continueModel.dynamicRecentData;
-            this.currentSwitchPrediction = this.switchModel.isActive ? this.switchModel.predict().predictedGroup : this.switchModel.dynamicPreviousData;
+            if (this.activeModel === "CONTINUE" && this.continueModel.isActive) {
+                this.continueModel.updateWithResult(newResult);
+                // Also update switch model values for display
+                this.switchModel.dynamicPreviousData = this.switchModel.dynamicRecentData;
+                this.switchModel.dynamicRecentData = newResult;
+            } else if (this.activeModel === "SWITCH" && this.switchModel.isActive) {
+                this.switchModel.updateWithResult(newResult);
+                // Also update continue model values for display
+                this.continueModel.dynamicPreviousData = this.continueModel.dynamicRecentData;
+                this.continueModel.dynamicRecentData = newResult;
+            }
             
             return {
                 updated: true,
                 continueValue: this.continueModel.dynamicRecentData,
                 switchValue: this.switchModel.dynamicPreviousData,
                 activeModel: this.activeModel,
-                continuePrediction: this.currentContinuePrediction,
-                switchPrediction: this.currentSwitchPrediction,
-                message: `Both models updated with new result: ${newResult}`
+                message: `Dynamic values updated with new result: ${newResult}`
             };
         }
         return {
@@ -807,10 +763,16 @@ class NewPatternAI {
         };
     }
     
+    /**
+     * Check if AI is currently in active prediction mode
+     */
     isActive() {
         return (this.activeModel && (this.continueModel.isActive || this.switchModel.isActive));
     }
     
+    /**
+     * Get current active pattern info
+     */
     getActivePatternInfo() {
         if (!this.isActive()) {
             return {
@@ -830,13 +792,13 @@ class NewPatternAI {
             continueWrongCount: this.continueModel.consecutiveWrongCount,
             switchWrongCount: this.switchModel.consecutiveWrongCount,
             userPreference: this.selector.getUserPreference(),
-            subPatternDetected: this.subPatternDetected,
-            continuePrediction: this.currentContinuePrediction,
-            switchPrediction: this.currentSwitchPrediction,
-            message: `Active: ${this.currentPattern} | CONTINUE: ${this.continueModel.isActive ? 'ACTIVE' : 'INACTIVE'} | SWITCH: ${this.switchModel.isActive ? 'ACTIVE' : 'INACTIVE'}`
+            message: `Active: ${this.currentPattern} | Model: ${this.activeModel}`
         };
     }
     
+    /**
+     * Record a prediction for future learning
+     */
     recordPrediction(predictionData) {
         this.patternHistory.unshift({
             ...predictionData,
@@ -848,6 +810,9 @@ class NewPatternAI {
         }
     }
     
+    /**
+     * Get pattern statistics with learning data
+     */
     getPatternStats() {
         const stats = {};
         
@@ -872,10 +837,16 @@ class NewPatternAI {
         return stats;
     }
     
+    /**
+     * Get selector statistics
+     */
     getSelectorStats() {
         return this.selector.getAllStats();
     }
     
+    /**
+     * Get overall AI stats
+     */
     getStats() {
         return {
             name: this.name,
@@ -894,10 +865,16 @@ class NewPatternAI {
         };
     }
     
+    /**
+     * Get current accuracy
+     */
     getAccuracy() {
         return this.accuracy;
     }
     
+    /**
+     * Get current dynamic values
+     */
     getDynamicValues() {
         return {
             continueValue: this.continueModel.dynamicRecentData,
@@ -908,30 +885,31 @@ class NewPatternAI {
             continueModelActive: this.continueModel.isActive,
             switchModelActive: this.switchModel.isActive,
             continueWrongCount: this.continueModel.consecutiveWrongCount,
-            switchWrongCount: this.switchModel.consecutiveWrongCount,
-            subPatternDetected: this.subPatternDetected,
-            continuePrediction: this.currentContinuePrediction,
-            switchPrediction: this.currentSwitchPrediction
+            switchWrongCount: this.switchModel.consecutiveWrongCount
         };
     }
     
+    /**
+     * Get both models' predictions
+     */
     getBothPredictions() {
         return {
             continue: {
-                value: this.currentContinuePrediction || this.continueModel.dynamicRecentData,
+                value: this.continueModel.dynamicRecentData,
                 active: this.continueModel.isActive,
-                accuracy: this.continueModel.accuracy,
-                originalValue: this.continueModel.dynamicRecentData
+                accuracy: this.continueModel.accuracy
             },
             switch: {
-                value: this.currentSwitchPrediction || this.switchModel.dynamicPreviousData,
+                value: this.switchModel.dynamicPreviousData,
                 active: this.switchModel.isActive,
-                accuracy: this.switchModel.accuracy,
-                originalValue: this.switchModel.dynamicPreviousData
+                accuracy: this.switchModel.accuracy
             }
         };
     }
     
+    /**
+     * Export state for database persistence
+     */
     exportState() {
         return {
             version: this.version,
@@ -944,7 +922,6 @@ class NewPatternAI {
             userPreference: this.selector.getUserPreference(),
             currentPattern: this.currentPattern,
             activeModel: this.activeModel,
-            subPatternDetected: this.subPatternDetected,
             continueModelState: {
                 dynamicRecentData: this.continueModel.dynamicRecentData,
                 dynamicPreviousData: this.continueModel.dynamicPreviousData,
@@ -966,6 +943,9 @@ class NewPatternAI {
         };
     }
     
+    /**
+     * Load state from database
+     */
     loadState(state) {
         if (!state) return;
         
@@ -993,7 +973,6 @@ class NewPatternAI {
         if (state.currentPattern) {
             this.currentPattern = state.currentPattern;
             this.activeModel = state.activeModel;
-            this.subPatternDetected = state.subPatternDetected || null;
             
             if (state.continueModelState) {
                 this.continueModel.dynamicRecentData = state.continueModelState.dynamicRecentData;
@@ -1015,13 +994,8 @@ class NewPatternAI {
                 this.switchModel.accuracy = state.switchModelState.accuracy;
             }
             
-            this.currentContinuePrediction = this.continueModel.isActive ? this.continueModel.predict().predictedGroup : this.continueModel.dynamicRecentData;
-            this.currentSwitchPrediction = this.switchModel.isActive ? this.switchModel.predict().predictedGroup : this.switchModel.dynamicPreviousData;
-            
             if (this.activeModel && (this.continueModel.isActive || this.switchModel.isActive)) {
-                console.log(`🔄 Loaded active state: Pattern ${this.currentPattern}`);
-                console.log(`   🔵 CONTINUE: ${this.continueModel.isActive ? 'ACTIVE' : 'INACTIVE'}`);
-                console.log(`   🟡 SWITCH: ${this.switchModel.isActive ? 'ACTIVE' : 'INACTIVE'}`);
+                console.log(`🔄 Loaded active state: Pattern ${this.currentPattern}, Model ${this.activeModel}`);
             }
         }
         
@@ -1029,29 +1003,43 @@ class NewPatternAI {
         console.log(`   Selector has data for ${Object.keys(this.selector.patternStats).length} patterns`);
     }
     
+    /**
+     * Force reset
+     */
     forceReset() {
         console.log(`🔧 Manual force reset triggered.`);
         this.resetActivePattern();
         this.selector.reset();
-        this.subPatternDetected = null;
         return {
             success: true,
             message: "AI has been reset. Now in WAIT mode with fresh selector data."
         };
     }
     
+    /**
+     * Get available protection types
+     */
     getProtectionTypes() {
         return ['CONTINUE', 'SWITCH', 'AUTO'];
     }
     
+    /**
+     * Get all defined patterns
+     */
     getAllPatterns() {
         return this.patterns;
     }
     
+    /**
+     * Get pattern mapping
+     */
     getPatternMapping() {
         return this.patternMapping;
     }
     
+    /**
+     * Set which model to use for current activation
+     */
     setActiveModel(modelType) {
         const validModels = ['CONTINUE', 'SWITCH', 'AUTO'];
         if (!validModels.includes(modelType)) {
@@ -1071,6 +1059,9 @@ class NewPatternAI {
         return true;
     }
     
+    /**
+     * Get rule description for a pattern
+     */
     getRuleDescription(patternString) {
         const mapping = this.patternMapping[patternString];
         if (!mapping) return null;
@@ -1083,6 +1074,10 @@ class NewPatternAI {
         };
     }
 }
+
+// ============================================================
+// Helper functions
+// ============================================================
 
 function createPatternFromResults(results) {
     if (!results || results.length < 3) {
@@ -1104,6 +1099,9 @@ function isValidPattern(patternString) {
     return validPatterns.includes(patternString);
 }
 
+// ============================================================
+// EXPORT
+// ============================================================
 module.exports = {
     NewPatternAI,
     ContinueModel,
