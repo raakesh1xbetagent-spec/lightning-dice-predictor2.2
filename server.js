@@ -1,8 +1,8 @@
 // ============================================================
-// MODIFIED server.js (v11.0 - Dual Model with Selector)
+// server.js (v11.1 - Dual Model with Selector + Sub-Pattern Detection)
 // Features: 3-Step Pattern Detection | CONTINUE & SWITCH Models | Selector Model
-// Telegram: ONLY sends notifications for VALID predictions (not WAITING mode)
-// UPDATED: Dual model system with user preference support
+// Telegram: TWO separate bots (CONTINUE & SWITCH) + Sub-pattern alerts
+// UPDATED: Sub-pattern detection with Telegram & WebSocket notifications
 // ============================================================
 
 // Fix memory leak warnings
@@ -30,90 +30,182 @@ const PORT = process.env.PORT || 3000;
 let aiMissCount = 0;
 let alertTriggered = false;
 
-// ============ TELEGRAM FUNCTIONS - ONLY FOR VALID PREDICTIONS ============
+// ============ TELEGRAM FUNCTIONS - TWO SEPARATE BOTS ============
 
-async function sendTelegramWrongNotification(actualGroup, predictedGroup, retryCount = 0, modelUsed = null) {
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.TELEGRAM_CHAT_ID;
+// CONTINUE Model Bot
+async function sendContinueTelegramWrongNotification(actualGroup, predictedGroup, retryCount = 0, subPattern = null) {
+    const botToken = process.env.CONTINUE_BOT_TOKEN;
+    const chatId = process.env.CONTINUE_CHAT_ID;
     
     if (!botToken || !chatId) {
-        console.log('⚠️ Telegram token or chat ID not set. Skipping notification.');
+        console.log('⚠️ CONTINUE Telegram bot token or chat ID not set.');
         return;
     }
     
-    // CRITICAL FIX: Don't send notification if prediction was WAITING mode
     if (!predictedGroup || predictedGroup === 'WAITING' || predictedGroup === '--' || predictedGroup === null) {
-        console.log(`📱 Telegram: Skipping notification - Invalid prediction (${predictedGroup})`);
+        console.log(`📱 CONTINUE Bot: Skipping notification - Invalid prediction (${predictedGroup})`);
         return;
     }
     
     const retryText = retryCount > 0 ? ` (Retry #${retryCount})` : '';
-    const modelText = modelUsed ? ` [${modelUsed} Model]` : '';
+    const subPatternText = subPattern ? `\n\n🔍 Sub-Pattern Detected: ${subPattern}` : '';
     
-    const message = `❌ WRONG PREDICTION ❌${modelText}
+    const message = `🔵 [CONTINUE MODEL] WRONG PREDICTION ❌
 
 Predicted: ${predictedGroup}
-Actual: ${actualGroup}${retryText}`;
+Actual: ${actualGroup}${retryText}${subPatternText}`;
 
     try {
         const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-        await axios.post(url, {
-            chat_id: chatId,
-            text: message
-        });
-        console.log(`📱 Telegram: WRONG notification sent for ${predictedGroup} → ${actualGroup}`);
+        await axios.post(url, { chat_id: chatId, text: message });
+        console.log(`📱 CONTINUE Bot: WRONG notification sent for ${predictedGroup} → ${actualGroup}`);
     } catch (error) {
-        console.error('❌ Telegram error:', error.message);
+        console.error('❌ CONTINUE Bot error:', error.message);
     }
 }
 
-async function sendTelegramCorrectNotification(actualGroup, predictedGroup, wasRetry = false, retryCount = 0, modelUsed = null) {
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.TELEGRAM_CHAT_ID;
+async function sendContinueTelegramCorrectNotification(actualGroup, predictedGroup, wasRetry = false, retryCount = 0, subPattern = null) {
+    const botToken = process.env.CONTINUE_BOT_TOKEN;
+    const chatId = process.env.CONTINUE_CHAT_ID;
     
-    if (!botToken || !chatId) {
-        return;
-    }
+    if (!botToken || !chatId) return;
     
-    // CRITICAL FIX: Don't send notification if prediction was WAITING mode
-    if (!predictedGroup || predictedGroup === 'WAITING' || predictedGroup === '--' || predictedGroup === null) {
-        console.log(`📱 Telegram: Skipping notification - Invalid prediction (${predictedGroup})`);
-        return;
-    }
+    if (!predictedGroup || predictedGroup === 'WAITING' || predictedGroup === '--' || predictedGroup === null) return;
     
     const retryText = wasRetry ? ` (Correct after ${retryCount} retries)` : '';
-    const modelText = modelUsed ? ` [${modelUsed} Model]` : '';
+    const subPatternText = subPattern ? `\n\n🔍 Sub-Pattern Detected: ${subPattern}` : '';
     
-    const message = `✅ CORRECT PREDICTION ✅${modelText}
+    const message = `🔵 [CONTINUE MODEL] CORRECT PREDICTION ✅
 
 Predicted: ${predictedGroup}
-Actual: ${actualGroup}${retryText}`;
+Actual: ${actualGroup}${retryText}${subPatternText}`;
 
     try {
         const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-        await axios.post(url, {
-            chat_id: chatId,
-            text: message
-        });
-        console.log(`📱 Telegram: CORRECT notification sent for ${predictedGroup} → ${actualGroup}`);
+        await axios.post(url, { chat_id: chatId, text: message });
+        console.log(`📱 CONTINUE Bot: CORRECT notification sent for ${predictedGroup} → ${actualGroup}`);
     } catch (error) {
-        console.error('❌ Telegram error:', error.message);
+        console.error('❌ CONTINUE Bot error:', error.message);
     }
 }
 
-// Ensure database directory exists
+async function sendContinueSubPatternNotification(currentPattern, subPattern, description) {
+    const botToken = process.env.CONTINUE_BOT_TOKEN;
+    const chatId = process.env.CONTINUE_CHAT_ID;
+    
+    if (!botToken || !chatId) return;
+    
+    const message = `🔵 [CONTINUE MODEL] 🔍 SUB-PATTERN DETECTED!
+
+Current Pattern: ${currentPattern}
+New Sub-Pattern: ${subPattern}
+Description: ${description || 'Valid 3-step pattern'}
+Time: ${new Date().toLocaleTimeString()}
+
+💡 This pattern was detected while in prediction mode (not switching).`;
+
+    try {
+        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        await axios.post(url, { chat_id: chatId, text: message });
+        console.log(`📱 CONTINUE Bot: Sub-pattern notification sent: ${subPattern}`);
+    } catch (error) {
+        console.error('❌ CONTINUE Bot sub-pattern error:', error.message);
+    }
+}
+
+// SWITCH Model Bot
+async function sendSwitchTelegramWrongNotification(actualGroup, predictedGroup, retryCount = 0, subPattern = null) {
+    const botToken = process.env.SWITCH_BOT_TOKEN;
+    const chatId = process.env.SWITCH_CHAT_ID;
+    
+    if (!botToken || !chatId) {
+        console.log('⚠️ SWITCH Telegram bot token or chat ID not set.');
+        return;
+    }
+    
+    if (!predictedGroup || predictedGroup === 'WAITING' || predictedGroup === '--' || predictedGroup === null) {
+        console.log(`📱 SWITCH Bot: Skipping notification - Invalid prediction (${predictedGroup})`);
+        return;
+    }
+    
+    const retryText = retryCount > 0 ? ` (Retry #${retryCount})` : '';
+    const subPatternText = subPattern ? `\n\n🔍 Sub-Pattern Detected: ${subPattern}` : '';
+    
+    const message = `🟡 [SWITCH MODEL] WRONG PREDICTION ❌
+
+Predicted: ${predictedGroup}
+Actual: ${actualGroup}${retryText}${subPatternText}`;
+
+    try {
+        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        await axios.post(url, { chat_id: chatId, text: message });
+        console.log(`📱 SWITCH Bot: WRONG notification sent for ${predictedGroup} → ${actualGroup}`);
+    } catch (error) {
+        console.error('❌ SWITCH Bot error:', error.message);
+    }
+}
+
+async function sendSwitchTelegramCorrectNotification(actualGroup, predictedGroup, wasRetry = false, retryCount = 0, subPattern = null) {
+    const botToken = process.env.SWITCH_BOT_TOKEN;
+    const chatId = process.env.SWITCH_CHAT_ID;
+    
+    if (!botToken || !chatId) return;
+    
+    if (!predictedGroup || predictedGroup === 'WAITING' || predictedGroup === '--' || predictedGroup === null) return;
+    
+    const retryText = wasRetry ? ` (Correct after ${retryCount} retries)` : '';
+    const subPatternText = subPattern ? `\n\n🔍 Sub-Pattern Detected: ${subPattern}` : '';
+    
+    const message = `🟡 [SWITCH MODEL] CORRECT PREDICTION ✅
+
+Predicted: ${predictedGroup}
+Actual: ${actualGroup}${retryText}${subPatternText}`;
+
+    try {
+        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        await axios.post(url, { chat_id: chatId, text: message });
+        console.log(`📱 SWITCH Bot: CORRECT notification sent for ${predictedGroup} → ${actualGroup}`);
+    } catch (error) {
+        console.error('❌ SWITCH Bot error:', error.message);
+    }
+}
+
+async function sendSwitchSubPatternNotification(currentPattern, subPattern, description) {
+    const botToken = process.env.SWITCH_BOT_TOKEN;
+    const chatId = process.env.SWITCH_CHAT_ID;
+    
+    if (!botToken || !chatId) return;
+    
+    const message = `🟡 [SWITCH MODEL] 🔍 SUB-PATTERN DETECTED!
+
+Current Pattern: ${currentPattern}
+New Sub-Pattern: ${subPattern}
+Description: ${description || 'Valid 3-step pattern'}
+Time: ${new Date().toLocaleTimeString()}
+
+💡 This pattern was detected while in prediction mode (not switching).`;
+
+    try {
+        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        await axios.post(url, { chat_id: chatId, text: message });
+        console.log(`📱 SWITCH Bot: Sub-pattern notification sent: ${subPattern}`);
+    } catch (error) {
+        console.error('❌ SWITCH Bot sub-pattern error:', error.message);
+    }
+}
+
+// ============ DATABASE SETUP ============
 const dbDir = path.join(__dirname, 'data');
 if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
     console.log('📁 Created data directory:', dbDir);
 }
 
-// Database setup
 const dbPath = path.join(dbDir, 'lightning_dice.db');
 console.log('📂 Database path:', dbPath);
 const db = new sqlite3.Database(dbPath);
 
-// Create tables (UPDATED for v11.0)
+// Create tables (UPDATED for v11.1)
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS results (
         id TEXT PRIMARY KEY,
@@ -141,7 +233,8 @@ db.serialize(() => {
         continue_value TEXT,
         switch_value TEXT,
         active_model TEXT,
-        user_preference TEXT
+        user_preference TEXT,
+        sub_pattern_detected TEXT
     )`);
     
     db.run(`CREATE TABLE IF NOT EXISTS ai_stats (
@@ -174,66 +267,96 @@ db.serialize(() => {
         updated_at DATETIME
     )`);
     
+    db.run(`CREATE TABLE IF NOT EXISTS sub_pattern_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        current_pattern TEXT,
+        sub_pattern TEXT,
+        description TEXT,
+        detected_at DATETIME
+    )`);
+    
     // Add new columns if not exists
-    db.run(`ALTER TABLE predictions ADD COLUMN is_retry INTEGER DEFAULT 0`, (err) => {
+    db.run(`ALTER TABLE predictions ADD COLUMN sub_pattern_detected TEXT`, (err) => {
         if (err && !err.message.includes('duplicate column')) {
-            console.log('Table already has is_retry column');
-        }
-    });
-    db.run(`ALTER TABLE predictions ADD COLUMN retry_number INTEGER DEFAULT 0`, (err) => {
-        if (err && !err.message.includes('duplicate column')) {
-            console.log('Table already has retry_number column');
-        }
-    });
-    db.run(`ALTER TABLE predictions ADD COLUMN continue_value TEXT`, (err) => {
-        if (err && !err.message.includes('duplicate column')) {
-            console.log('Table already has continue_value column');
-        }
-    });
-    db.run(`ALTER TABLE predictions ADD COLUMN switch_value TEXT`, (err) => {
-        if (err && !err.message.includes('duplicate column')) {
-            console.log('Table already has switch_value column');
-        }
-    });
-    db.run(`ALTER TABLE predictions ADD COLUMN active_model TEXT`, (err) => {
-        if (err && !err.message.includes('duplicate column')) {
-            console.log('Table already has active_model column');
-        }
-    });
-    db.run(`ALTER TABLE predictions ADD COLUMN user_preference TEXT`, (err) => {
-        if (err && !err.message.includes('duplicate column')) {
-            console.log('Table already has user_preference column');
+            console.log('Table already has sub_pattern_detected column');
         }
     });
     
-    // Create user_settings default record
     db.run(`INSERT OR IGNORE INTO user_settings (id, preference, updated_at) VALUES (1, 'AUTO', datetime('now'))`);
     
-    console.log('✅ Database tables created/verified (v11.0 ready)');
+    console.log('✅ Database tables created/verified (v11.1 ready)');
 });
 
 // ============ AI MODEL INITIALIZATION ============
 let serverAI = null;
+let lastSubPatternNotification = null;
 
 async function initNewAI() {
-    console.log('🤖 Initializing Dual Model 3-Step Pattern AI (v11.0)...');
+    console.log('🤖 Initializing Dual Model 3-Step Pattern AI (v11.1)...');
     serverAI = new NewPatternAI();
     
+    // Register sub-pattern callback
+    serverAI.setSubPatternCallback(async (subPatternData) => {
+        console.log(`🔍 Sub-pattern callback triggered:`, subPatternData);
+        
+        // Prevent duplicate notifications (within 10 seconds)
+        const now = Date.now();
+        if (lastSubPatternNotification && (now - lastSubPatternNotification) < 10000) {
+            console.log(`⏱️ Skipping duplicate sub-pattern notification (within 10s)`);
+            return;
+        }
+        lastSubPatternNotification = now;
+        
+        // Send Telegram notifications
+        if (subPatternData.currentPattern && subPatternData.subPattern) {
+            // Send to CONTINUE bot
+            await sendContinueSubPatternNotification(
+                subPatternData.currentPattern,
+                subPatternData.subPattern,
+                subPatternData.description
+            );
+            
+            // Send to SWITCH bot
+            await sendSwitchSubPatternNotification(
+                subPatternData.currentPattern,
+                subPatternData.subPattern,
+                subPatternData.description
+            );
+            
+            // Save to database
+            db.run(`INSERT INTO sub_pattern_log (current_pattern, sub_pattern, description, detected_at) VALUES (?, ?, ?, ?)`,
+                [subPatternData.currentPattern, subPatternData.subPattern, subPatternData.description, new Date().toISOString()],
+                (err) => {
+                    if (err) console.error('Error saving sub-pattern log:', err);
+                    else console.log(`💾 Sub-pattern saved to database`);
+                }
+            );
+            
+            // Broadcast via WebSocket
+            broadcast({
+                type: 'sub_pattern_detected',
+                data: {
+                    currentPattern: subPatternData.currentPattern,
+                    subPattern: subPatternData.subPattern,
+                    description: subPatternData.description,
+                    timestamp: subPatternData.timestamp,
+                    continueModelValue: subPatternData.continueModelValue,
+                    switchModelValue: subPatternData.switchModelValue,
+                    activeModel: subPatternData.activeModel
+                }
+            });
+        }
+    });
+    
     try {
-        // Load user preference
         const userPref = await new Promise((resolve) => {
             db.get(`SELECT preference FROM user_settings WHERE id = 1`, (err, row) => {
-                if (err || !row) {
-                    resolve('AUTO');
-                } else {
-                    resolve(row.preference);
-                }
+                resolve(row ? row.preference : 'AUTO');
             });
         });
         serverAI.setUserPreference(userPref);
         console.log(`👤 User preference loaded: ${userPref}`);
         
-        // Load AI state
         const savedState = await new Promise((resolve) => {
             db.get(`SELECT state_data FROM ai_state WHERE id = 1`, (err, row) => {
                 if (err || !row) {
@@ -256,13 +379,14 @@ async function initNewAI() {
         console.log('No existing AI state found, starting fresh');
     }
     
-    console.log(`✅ AI ready - Dual Model 3-Step Pattern AI active with ${serverAI.patterns.length} patterns`);
-    console.log(`📋 NEW DUAL MODEL SYSTEM (v11.0):`);
+    console.log(`✅ AI ready - Dual Model 3-Step Pattern AI v11.1 with Sub-Pattern Detection`);
+    console.log(`📋 DUAL MODEL SYSTEM (v11.1):`);
     console.log(`   🔵 CONTINUE Model: Always predicts LAST result`);
     console.log(`   🟡 SWITCH Model: Always predicts PREVIOUS result`);
     console.log(`   🎯 Selector Model: Learns which model works best per pattern`);
+    console.log(`   🔍 Sub-Pattern Detection: Detects patterns while in prediction mode`);
     console.log(`   👤 User can choose: CONTINUE only, SWITCH only, or AUTO`);
-    console.log(`📱 Telegram: ONLY sends for VALID predictions (ignores WAITING mode)`);
+    console.log(`📱 Telegram: TWO separate bots (CONTINUE & SWITCH)`);
 }
 
 // Save AI state to database periodically
@@ -283,7 +407,6 @@ async function saveAIState() {
     }
 }
 
-// Save user preference to database
 async function saveUserPreference(preference) {
     return new Promise((resolve) => {
         db.run(`UPDATE user_settings SET preference = ?, updated_at = ? WHERE id = 1`,
@@ -314,7 +437,7 @@ app.use(express.static('public'));
 
 // ============ WEB SOCKET SERVER ============
 const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n⚡ Lightning Dice Predictor v11.0 - Dual Model AI`);
+    console.log(`\n⚡ Lightning Dice Predictor v11.1 - Dual Model AI with Sub-Pattern Detection`);
     console.log(`📍 http://localhost:${PORT}`);
     console.log(`🚀 Server running on port ${PORT}\n`);
     initNewAI();
@@ -322,7 +445,6 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 });
 
 const wss = new WebSocket.Server({ server });
-
 const clients = new Set();
 
 wss.on('connection', (ws) => {
@@ -407,6 +529,7 @@ function getPredictionsData(limit = 500) {
                     switchValue: p.switch_value,
                     activeModel: p.active_model,
                     userPreference: p.user_preference,
+                    subPatternDetected: p.sub_pattern_detected,
                     timestamp: new Date(p.prediction_timestamp),
                     isPending: p.actual_group === null
                 }));
@@ -506,8 +629,6 @@ async function getCurrentPredictionData() {
     
     if (serverAI) {
         const prediction = serverAI.predict(last3Results, null);
-        
-        // Get both models' predictions
         const bothPredictions = serverAI.getBothPredictions();
         
         return {
@@ -529,12 +650,11 @@ async function getCurrentPredictionData() {
             previousData: prediction.switchValue,
             activeModel: prediction.activeModel,
             userPreference: prediction.userPreference,
-            bothPredictions: bothPredictions
+            bothPredictions: bothPredictions,
+            subPatternDetected: prediction.subPatternDetected || null
         };
     }
     
-    // Fallback
-    console.log(`⚠️ AI not initialized, using fallback prediction`);
     const patternString = `${last3Results[0]}→${last3Results[1]}→${last3Results[2]}`;
     return {
         pattern3step: patternString,
@@ -559,17 +679,16 @@ async function savePredictionOnly(resultId, last3Results) {
     
     const prediction = await getCurrentPredictionData();
     
-    // CRITICAL FIX: Don't save WAITING predictions to database
     if (prediction.status === "WAITING" || prediction.predictedGroup === 'WAITING' || prediction.predictedGroup === null) {
         console.log(`⚠️ NOT saving prediction for ${resultId} - AI is in WAITING mode (no valid prediction)`);
         return null;
     }
     
-    // Get current dynamic values from AI if available
     let continueValue = null;
     let switchValue = null;
     let activeModel = null;
     let userPreference = null;
+    let subPatternDetected = null;
     
     if (serverAI) {
         const dynamicVals = serverAI.getDynamicValues();
@@ -577,26 +696,18 @@ async function savePredictionOnly(resultId, last3Results) {
         switchValue = dynamicVals.switchValue;
         activeModel = dynamicVals.activeModel;
         userPreference = dynamicVals.userPreference;
+        subPatternDetected = dynamicVals.subPatternDetected || null;
     }
     
     console.log(`\n📝 SAVING PREDICTION for ${resultId}:`);
     console.log(`   Pattern (3-Step): ${prediction.pattern3step || 'N/A'}`);
     console.log(`   Active Model: ${activeModel || prediction.protectionType || 'N/A'}`);
     console.log(`   Predicted Group: ${prediction.predictedGroup || 'N/A'}`);
-    console.log(`   Is Retry: ${prediction.isRetry || false}`);
-    console.log(`   Retry Count: ${prediction.retryCount || 0}`);
-    console.log(`   CONTINUE Value: ${continueValue || 'N/A'}`);
-    console.log(`   SWITCH Value: ${switchValue || 'N/A'}`);
-    console.log(`   User Preference: ${userPreference || 'AUTO'}`);
+    console.log(`   Sub-Pattern Detected: ${subPatternDetected || 'None'}`);
     
     const existing = await new Promise((resolve) => {
         db.get(`SELECT id FROM predictions WHERE result_id = ?`, [resultId], (err, row) => {
-            if (err) {
-                console.error('Error checking existing prediction:', err);
-                resolve(null);
-            } else {
-                resolve(row);
-            }
+            resolve(row);
         });
     });
     
@@ -617,9 +728,11 @@ async function savePredictionOnly(resultId, last3Results) {
                     continue_value = ?,
                     switch_value = ?,
                     active_model = ?,
-                    user_preference = ?
+                    user_preference = ?,
+                    sub_pattern_detected = ?
                     WHERE result_id = ?`,
-                [prediction.pattern3step, modelToSave, prediction.predictedGroup, new Date().toISOString(), isRetry, retryNumber, continueValue, switchValue, modelToSave, prefToSave, resultId],
+                [prediction.pattern3step, modelToSave, prediction.predictedGroup, new Date().toISOString(), 
+                 isRetry, retryNumber, continueValue, switchValue, modelToSave, prefToSave, subPatternDetected, resultId],
                 (err) => {
                     if (err) {
                         console.error('Error updating prediction:', err);
@@ -634,21 +747,12 @@ async function savePredictionOnly(resultId, last3Results) {
     } else {
         return new Promise((resolve) => {
             const stmt = db.prepare(`INSERT INTO predictions (
-                    result_id,
-                    pattern_3step,
-                    protection_type,
-                    predicted_group,
-                    prediction_timestamp,
-                    is_correct,
-                    is_retry,
-                    retry_number,
-                    continue_value,
-                    switch_value,
-                    active_model,
-                    user_preference
-                ) VALUES (?, ?, ?, ?, ?, -1, ?, ?, ?, ?, ?, ?)`);
+                    result_id, pattern_3step, protection_type, predicted_group, prediction_timestamp,
+                    is_correct, is_retry, retry_number, continue_value, switch_value, active_model, user_preference, sub_pattern_detected
+                ) VALUES (?, ?, ?, ?, ?, -1, ?, ?, ?, ?, ?, ?, ?)`);
             
-            stmt.run([resultId, prediction.pattern3step, modelToSave, prediction.predictedGroup, new Date().toISOString(), isRetry, retryNumber, continueValue, switchValue, modelToSave, prefToSave], (err) => {
+            stmt.run([resultId, prediction.pattern3step, modelToSave, prediction.predictedGroup, new Date().toISOString(),
+                      isRetry, retryNumber, continueValue, switchValue, modelToSave, prefToSave, subPatternDetected], (err) => {
                 if (err) {
                     console.error('Error saving prediction:', err);
                     resolve(null);
@@ -667,13 +771,8 @@ async function updatePredictionWithResult(resultId, actualGroup) {
     console.log(`   ACTUAL RESULT: ${actualGroup}`);
     
     const prediction = await new Promise((resolve) => {
-        db.get(`SELECT predicted_group, pattern_3step, protection_type, is_retry, retry_number, active_model FROM predictions WHERE result_id = ?`, [resultId], (err, row) => {
-            if (err) {
-                console.error('Error fetching prediction:', err);
-                resolve(null);
-            } else {
-                resolve(row);
-            }
+        db.get(`SELECT predicted_group, pattern_3step, protection_type, is_retry, retry_number, active_model, sub_pattern_detected FROM predictions WHERE result_id = ?`, [resultId], (err, row) => {
+            resolve(row);
         });
     });
     
@@ -686,32 +785,46 @@ async function updatePredictionWithResult(resultId, actualGroup) {
     const isRetry = prediction.is_retry === 1;
     const retryCount = prediction.retry_number || 0;
     const modelUsed = prediction.active_model || prediction.protection_type || 'CONTINUE';
+    const subPatternDetected = prediction.sub_pattern_detected || null;
     
     console.log(`   PREDICTED: ${prediction.predicted_group} → ${isCorrect ? '✓ CORRECT' : '✗ WRONG'}`);
     console.log(`   Model Used: ${modelUsed}`);
-    console.log(`   Is Retry: ${isRetry}, Retry Count: ${retryCount}`);
+    console.log(`   Sub-Pattern: ${subPatternDetected || 'None'}`);
     
-    // Update AI model with the actual result
+    let subPatternInfo = null;
+    
     if (serverAI) {
         const updateResult = serverAI.updateWithResult(actualGroup);
         console.log(`   AI Accuracy updated: ${serverAI.getAccuracy().toFixed(1)}%`);
         
-        // Log model status after update
         const modelsStatus = serverAI.getModelsStatus();
         console.log(`   Models Status - CONTINUE: ${modelsStatus.continue.isActive ? 'ACTIVE' : 'INACTIVE'}, SWITCH: ${modelsStatus.switch.isActive ? 'ACTIVE' : 'INACTIVE'}`);
         console.log(`   Active Model: ${modelsStatus.activeModel || 'none'}`);
+        
+        // Check for any sub-pattern detected during this update
+        const dynamicVals = serverAI.getDynamicValues();
+        if (dynamicVals.subPatternDetected && dynamicVals.subPatternDetected !== subPatternDetected) {
+            subPatternInfo = dynamicVals.subPatternDetected;
+        }
     }
     
-    // ============ TELEGRAM NOTIFICATION - ONLY FOR VALID PREDICTIONS ============
+    // Send to appropriate Telegram bot
     if (isCorrect === 1) {
-        await sendTelegramCorrectNotification(actualGroup, prediction.predicted_group, isRetry, retryCount, modelUsed);
+        if (modelUsed === 'CONTINUE') {
+            await sendContinueTelegramCorrectNotification(actualGroup, prediction.predicted_group, isRetry, retryCount, subPatternInfo);
+        } else {
+            await sendSwitchTelegramCorrectNotification(actualGroup, prediction.predicted_group, isRetry, retryCount, subPatternInfo);
+        }
         aiMissCount = 0;
         alertTriggered = false;
     } else {
         aiMissCount++;
-        await sendTelegramWrongNotification(actualGroup, prediction.predicted_group, retryCount, modelUsed);
+        if (modelUsed === 'CONTINUE') {
+            await sendContinueTelegramWrongNotification(actualGroup, prediction.predicted_group, retryCount, subPatternInfo);
+        } else {
+            await sendSwitchTelegramWrongNotification(actualGroup, prediction.predicted_group, retryCount, subPatternInfo);
+        }
     }
-    // ============ END TELEGRAM LOGIC ============
     
     return new Promise((resolve) => {
         db.run(`UPDATE predictions SET
@@ -761,7 +874,6 @@ async function broadcastFullDataOnNewResult(gameResult, predictionData) {
     
     results.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     
-    // Add dynamic values to prediction data if available
     let enhancedPredictionData = { ...predictionData };
     if (serverAI) {
         const dynamicVals = serverAI.getDynamicValues();
@@ -770,6 +882,7 @@ async function broadcastFullDataOnNewResult(gameResult, predictionData) {
         enhancedPredictionData.isPredictionModeActive = serverAI.isActive();
         enhancedPredictionData.activeModel = dynamicVals.activeModel;
         enhancedPredictionData.userPreference = dynamicVals.userPreference;
+        enhancedPredictionData.subPatternDetected = dynamicVals.subPatternDetected || null;
         
         const bothPredictions = serverAI.getBothPredictions();
         enhancedPredictionData.continueModelPrediction = bothPredictions.continue.value;
@@ -808,6 +921,7 @@ async function broadcastFullDataOnNewResult(gameResult, predictionData) {
     console.log(`✅ Broadcast sent to ${sentCount} clients`);
 }
 
+// ============ GAME DATA COLLECTION ============
 let lastGameId = null;
 let isCollecting = false;
 let pendingPredictions = new Set();
@@ -903,9 +1017,7 @@ async function collectData() {
                     }
                     
                     const savedResult = await saveGameResult(game);
-                    
-                    const totalResult = game.result.total;
-                    const group = getGroup(totalResult);
+                    const group = getGroup(game.result.total);
                     
                     if (predictionData) {
                         await updatePredictionWithResult(gameId, group);
@@ -970,7 +1082,6 @@ app.get('/api/all-data', async (req, res) => {
         
         results.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         
-        // Add dynamic values to response
         let enhancedPrediction = { ...currentPrediction };
         if (serverAI) {
             const dynamicVals = serverAI.getDynamicValues();
@@ -979,8 +1090,7 @@ app.get('/api/all-data', async (req, res) => {
             enhancedPrediction.isPredictionModeActive = serverAI.isActive();
             enhancedPrediction.activeModel = dynamicVals.activeModel;
             enhancedPrediction.userPreference = dynamicVals.userPreference;
-            enhancedPrediction.continueModelActive = dynamicVals.continueModelActive;
-            enhancedPrediction.switchModelActive = dynamicVals.switchModelActive;
+            enhancedPrediction.subPatternDetected = dynamicVals.subPatternDetected || null;
             
             const bothPredictions = serverAI.getBothPredictions();
             enhancedPrediction.continueModelPrediction = bothPredictions.continue.value;
@@ -1039,6 +1149,7 @@ app.get('/api/predictions', (req, res) => {
             switch_value: p.switch_value,
             active_model: p.active_model,
             user_preference: p.user_preference,
+            sub_pattern_detected: p.sub_pattern_detected,
             prediction_timestamp: p.prediction_timestamp,
             is_pending: p.actual_group === null
         }));
@@ -1110,7 +1221,6 @@ app.get('/api/ai-stats', (req, res) => {
 app.get('/api/current-prediction', async (req, res) => {
     const prediction = await getCurrentPredictionData();
     
-    // Add dynamic values if AI is active
     let enhancedPrediction = { ...prediction };
     if (serverAI) {
         const dynamicVals = serverAI.getDynamicValues();
@@ -1119,8 +1229,7 @@ app.get('/api/current-prediction', async (req, res) => {
         enhancedPrediction.isPredictionModeActive = serverAI.isActive();
         enhancedPrediction.activeModel = dynamicVals.activeModel;
         enhancedPrediction.userPreference = dynamicVals.userPreference;
-        enhancedPrediction.continueModelActive = dynamicVals.continueModelActive;
-        enhancedPrediction.switchModelActive = dynamicVals.switchModelActive;
+        enhancedPrediction.subPatternDetected = dynamicVals.subPatternDetected || null;
         
         const bothPredictions = serverAI.getBothPredictions();
         enhancedPrediction.continueModelPrediction = bothPredictions.continue.value;
@@ -1133,6 +1242,16 @@ app.get('/api/current-prediction', async (req, res) => {
     res.json({
         success: true,
         prediction: enhancedPrediction
+    });
+});
+
+app.get('/api/sub-pattern-history', (req, res) => {
+    db.all(`SELECT * FROM sub_pattern_log ORDER BY detected_at DESC LIMIT 50`, (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json(rows || []);
     });
 });
 
@@ -1212,13 +1331,14 @@ app.get('/api/models-status', (req, res) => {
 app.get('/api/health', (req, res) => {
     res.json({ 
         status: 'OK', 
-        version: '11.0',
+        version: '11.1',
         timestamp: new Date().toISOString(),
         clients: clients.size,
         uptime: process.uptime(),
         aiReady: serverAI !== null,
         aiActive: serverAI ? serverAI.isActive() : false,
-        telegramActive: !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID),
+        continueTelegramActive: !!(process.env.CONTINUE_BOT_TOKEN && process.env.CONTINUE_CHAT_ID),
+        switchTelegramActive: !!(process.env.SWITCH_BOT_TOKEN && process.env.SWITCH_CHAT_ID),
         userPreference: serverAI ? serverAI.getUserPreference() : 'AUTO'
     });
 });
@@ -1237,6 +1357,12 @@ app.get('/api/diagnostic', async (req, res) => {
             });
         });
         
+        const subPatternCount = await new Promise((resolve) => {
+            db.get(`SELECT COUNT(*) as count FROM sub_pattern_log`, (err, row) => {
+                resolve(row ? row.count : 0);
+            });
+        });
+        
         const lastResults = await new Promise((resolve) => {
             db.all(`SELECT id, total, group_name, timestamp FROM results ORDER BY timestamp DESC LIMIT 10`, (err, rows) => {
                 resolve(rows || []);
@@ -1249,14 +1375,15 @@ app.get('/api/diagnostic', async (req, res) => {
         
         res.json({
             success: true,
-            version: '11.0',
+            version: '11.1',
             database: {
                 path: dbPath,
                 exists: fs.existsSync(dbPath)
             },
             counts: {
                 results: resultsCount,
-                validPredictions: predictionsCount
+                validPredictions: predictionsCount,
+                subPatternDetections: subPatternCount
             },
             last10Results: lastResults,
             last3StepPattern: last3Pattern,
@@ -1268,8 +1395,10 @@ app.get('/api/diagnostic', async (req, res) => {
             modelsStatus: serverAI ? serverAI.getModelsStatus() : null,
             userPreference: serverAI ? serverAI.getUserPreference() : 'AUTO',
             telegram: {
-                configured: !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID),
-                onlyValidPredictions: true
+                continueBot: !!(process.env.CONTINUE_BOT_TOKEN && process.env.CONTINUE_CHAT_ID),
+                switchBot: !!(process.env.SWITCH_BOT_TOKEN && process.env.SWITCH_CHAT_ID),
+                onlyValidPredictions: true,
+                subPatternNotifications: true
             }
         });
     } catch (error) {
@@ -1282,18 +1411,20 @@ setInterval(collectData, 3000);
 collectData();
 
 console.log('📊 Background data collection started (every 3 seconds)');
-console.log('🤖 Dual Model 3-Step Pattern AI v11.0 active - 6 patterns loaded');
+console.log('🤖 Dual Model 3-Step Pattern AI v11.1 active - 6 patterns loaded');
 console.log('🔌 WebSocket server ready for real-time updates');
-console.log('📱 Telegram: ONLY sends for VALID predictions (WAITING mode is ignored)');
-console.log('📈 v11.0 Features:');
+console.log('📱 Telegram: TWO separate bots for CONTINUE and SWITCH models');
+console.log('🔍 Sub-Pattern Detection: Active while in prediction mode');
+console.log('📈 v11.1 Features:');
 console.log('   - 3-Step Pattern Detection (TRIGGER only)');
 console.log('   - 🔵 CONTINUE Model = Last Result (updates dynamically)');
 console.log('   - 🟡 SWITCH Model = Previous Result (updates dynamically)');
 console.log('   - 🎯 Selector Model learns which model works best');
+console.log('   - 🔍 Sub-Pattern Detection (detects patterns while predicting)');
+console.log('   - 📱 Two separate Telegram bots (CONTINUE & SWITCH)');
 console.log('   - 👤 User can choose: CONTINUE only, SWITCH only, or AUTO');
-console.log('   - Retry with same model until CORRECT');
 console.log('   - Real-Time Learning');
-console.log('✅ FIXED: WAITING predictions are NOT saved to database and NOT sent to Telegram');
+console.log('✅ WAITING predictions are NOT saved and NOT sent to Telegram');
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
