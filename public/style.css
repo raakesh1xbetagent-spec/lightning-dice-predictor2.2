@@ -752,3 +752,153 @@ input:checked + .slider:before {
 .debug-btn {
     display: none;
 }
+
+/* ============ FIX FOR NUMBER STATISTICS TABLE ============ */
+
+.stats-collapsible {
+    background: rgba(0,0,0,0.4);
+    border-radius: 28px;
+    padding: 25px;
+    margin-bottom: 30px;
+    overflow-x: auto;
+}
+
+#statsContent {
+    overflow-x: auto;
+}
+
+.stats-table {
+    width: 100%;
+    min-width: 500px;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.stats-table th,
+.stats-table td {
+    padding: 10px 12px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.stats-table th {
+    background: rgba(255,215,0,0.15);
+    font-weight: 600;
+    color: #ffd700;
+}
+
+/* ============ FIX FOR PREDICTION HISTORY TABLE ============ */
+
+.history-section {
+    background: rgba(0,0,0,0.4);
+    border-radius: 28px;
+    padding: 25px;
+    margin-bottom: 30px;
+    overflow-x: auto;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    border-radius: 16px;
+    margin: 15px 0;
+}
+
+.history-table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.history-table th,
+.history-table td {
+    padding: 12px 8px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    white-space: nowrap;
+}
+
+.history-table th {
+    background: rgba(255,215,0,0.1);
+    font-weight: 600;
+    color: #ffd700;
+    position: sticky;
+    top: 0;
+}
+
+/* First column (Time) - keep visible */
+.history-table th:first-child,
+.history-table td:first-child {
+    position: sticky;
+    left: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 1;
+}
+
+/* ============ RESPONSIVE FIXES ============ */
+
+@media (max-width: 1000px) {
+    .history-table {
+        min-width: 800px;
+        font-size: 10px;
+    }
+    
+    .stats-table {
+        min-width: 400px;
+        font-size: 10px;
+    }
+    
+    .history-table th,
+    .history-table td {
+        padding: 8px 5px;
+    }
+}
+
+@media (max-width: 600px) {
+    .history-section,
+    .stats-collapsible {
+        padding: 15px;
+    }
+    
+    .history-table {
+        min-width: 700px;
+        font-size: 9px;
+    }
+    
+    .stats-table {
+        min-width: 350px;
+        font-size: 9px;
+    }
+}
+
+/* ============ PREDICTION CELL COLORS ============ */
+
+.prediction-cell {
+    font-family: monospace;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.pred-correct {
+    color: #4ade80;
+}
+
+.pred-wrong {
+    color: #ef4444;
+}
+
+.pred-pending {
+    color: #ffd700;
+}
+
+/* Pattern Badge */
+.pattern-badge {
+    background: rgba(139,92,246,0.25);
+    color: #a78bfa;
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-size: 9px;
+    font-family: monospace;
+    display: inline-block;
+    white-space: nowrap;
+}
