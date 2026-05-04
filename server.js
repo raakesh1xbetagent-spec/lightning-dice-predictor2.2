@@ -1,8 +1,7 @@
 // ============================================================
-// server.js (v11.2 - Dual Model with Selector + Sub-Pattern Detection)
-// Features: 3-Step Pattern Detection | CONTINUE & SWITCH Models | Selector Model
-// Telegram: TWO separate bots with STYLED messages + PATTERN TRIGGER notifications
-// UPDATED: Pattern trigger notifications, styled messages, all in one message per bot
+// server.js (v11.3 - Independent Dual Model + Simple Telegram Messages)
+// Features: 3-Step Pattern Detection | Independent CONTINUE & SWITCH Models
+// Telegram: Simple, clean messages for both bots
 // ============================================================
 
 // Fix memory leak warnings
@@ -26,41 +25,49 @@ const { NewPatternAI } = require('./new-ai-logic');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ============ TELEGRAM MESSAGE STYLES ============
-const STYLES = {
-    // CONTINUE Model (Green Theme)
-    CONTINUE: {
-        header: '🟢 ═══════════════════════════════════\n     CONTINUE MODEL STATUS\n═══════════════════════════════════',
-        trigger: '🟢 [PATTERN TRIGGERED - CONTINUE MODEL]',
-        subPattern: '🟢 [SUB-PATTERN DETECTED - CONTINUE MODEL]',
-        wrong: '🟢 ─────────────────────────────\n     CONTINUE MODEL - WRONG\n─────────────────────────────',
-        correct: '🟢 ─────────────────────────────\n     CONTINUE MODEL - CORRECT\n─────────────────────────────',
-        separator: '────────────────────────────────────────',
-        emoji: '🔵',
-        colorCode: ''
-    },
-    // SWITCH Model (Orange/Yellow Theme)
-    SWITCH: {
-        header: '🟠 ═══════════════════════════════════\n      SWITCH MODEL STATUS\n═══════════════════════════════════',
-        trigger: '🟠 [PATTERN TRIGGERED - SWITCH MODEL]',
-        subPattern: '🟠 [SUB-PATTERN DETECTED - SWITCH MODEL]',
-        wrong: '🟠 ─────────────────────────────\n      SWITCH MODEL - WRONG\n─────────────────────────────',
-        correct: '🟠 ─────────────────────────────\n      SWITCH MODEL - CORRECT\n─────────────────────────────',
-        separator: '────────────────────────────────────────',
-        emoji: '🟡',
-        colorCode: ''
-    }
-};
+// ============ SIMPLE TELEGRAM MESSAGE FORMATS ============
 
-// Store last message IDs for editing (one message per bot per chat)
+// CONTINUE Model - Simple Message Formats
+function formatContinueTriggerMessage(patternString, predictedGroup) {
+    return `✅ Pattern: ${patternString}\n🎯 Next: ${predictedGroup}`;
+}
+
+function formatContinueWrongMessage(predictedGroup, actualGroup, retryCount) {
+    return `❌ Wrong! Next: ${actualGroup} (Retry #${retryCount})`;
+}
+
+function formatContinueCorrectMessage(predictedGroup, actualGroup) {
+    return `✅ Correct! ${predictedGroup} was right.`;
+}
+
+function formatContinueSubPatternMessage(currentPattern, subPattern) {
+    return `🔍 Sub: ${subPattern}\n📍 Under: ${currentPattern}`;
+}
+
+// SWITCH Model - Simple Message Formats
+function formatSwitchTriggerMessage(patternString, predictedGroup) {
+    return `✅ Pattern: ${patternString}\n🎯 Next: ${predictedGroup}`;
+}
+
+function formatSwitchWrongMessage(predictedGroup, actualGroup, retryCount) {
+    return `❌ Wrong! Next: ${actualGroup} (Retry #${retryCount})`;
+}
+
+function formatSwitchCorrectMessage(predictedGroup, actualGroup) {
+    return `✅ Correct! ${predictedGroup} was right.`;
+}
+
+function formatSwitchSubPatternMessage(currentPattern, subPattern) {
+    return `🔍 Sub: ${subPattern}\n📍 Under: ${currentPattern}`;
+}
+
+// Store last message IDs for editing
 let continueLastMessageId = null;
 let switchLastMessageId = null;
 let continueLastChatId = null;
 let switchLastChatId = null;
 
-// ============ TELEGRAM FUNCTIONS - TWO SEPARATE BOTS WITH STYLED MESSAGES ============
-
-// Helper to send or edit message (single message per bot)
+// Helper to send or edit message
 async function sendOrEditTelegramMessage(botToken, chatId, message, isContinue = true) {
     if (!botToken || !chatId) return null;
     
@@ -70,7 +77,6 @@ async function sendOrEditTelegramMessage(botToken, chatId, message, isContinue =
     try {
         const url = `https://api.telegram.org/bot${botToken}/`;
         
-        // If we have a previous message in the same chat, edit it
         if (lastMessageId && lastChatId === chatId) {
             await axios.post(`${url}editMessageText`, {
                 chat_id: chatId,
@@ -81,16 +87,14 @@ async function sendOrEditTelegramMessage(botToken, chatId, message, isContinue =
             console.log(`📱 ${isContinue ? 'CONTINUE' : 'SWITCH'} Bot: Message EDITED`);
             return lastMessageId;
         } else {
-            // Send new message
             const response = await axios.post(`${url}sendMessage`, {
                 chat_id: chatId,
                 text: message,
                 parse_mode: 'HTML'
             });
             const newMessageId = response.data.result.message_id;
-            console.log(`📱 ${isContinue ? 'CONTINUE' : 'SWITCH'} Bot: New message SENT (ID: ${newMessageId})`);
+            console.log(`📱 ${isContinue ? 'CONTINUE' : 'SWITCH'} Bot: New message SENT`);
             
-            // Store message ID
             if (isContinue) {
                 continueLastMessageId = newMessageId;
                 continueLastChatId = chatId;
@@ -101,7 +105,6 @@ async function sendOrEditTelegramMessage(botToken, chatId, message, isContinue =
             return newMessageId;
         }
     } catch (error) {
-        // If edit fails (message too old), send new message
         if (error.response?.status === 400) {
             try {
                 const response = await axios.post(`${url}sendMessage`, {
@@ -128,210 +131,12 @@ async function sendOrEditTelegramMessage(botToken, chatId, message, isContinue =
     }
 }
 
-// Format pattern trigger message for CONTINUE model
-function formatContinueTriggerMessage(patternString, predictedGroup, confidence, continueValue, switchValue) {
-    const patternParts = patternString.split('→');
-    return `${STYLES.CONTINUE.header}
-
-📐 PATTERN TRIGGERED: <b>${patternString}</b>
-   ${patternParts[0]} → ${patternParts[1]} → ${patternParts[2]}
-
-🎯 <b>CONTINUE MODEL PREDICTION: ${predictedGroup}</b>
-📊 Confidence: ${confidence}%
-💡 Reason: Last result was <b>${continueValue || predictedGroup}</b>
-
-🔄 Model Status: <b>ACTIVE</b>
-👤 User Preference: ${serverAI?.getUserPreference() || 'AUTO'}
-
-${STYLES.CONTINUE.separator}
-
-🔵 CONTINUE Model Value: ${continueValue || '--'}
-🟡 SWITCH Model Value: ${switchValue || '--'}
-
-⏳ Waiting for next result...`;
-}
-
-// Format pattern trigger message for SWITCH model
-function formatSwitchTriggerMessage(patternString, predictedGroup, confidence, continueValue, switchValue) {
-    const patternParts = patternString.split('→');
-    return `${STYLES.SWITCH.header}
-
-📐 PATTERN TRIGGERED: <b>${patternString}</b>
-   ${patternParts[0]} → ${patternParts[1]} → ${patternParts[2]}
-
-🎯 <b>SWITCH MODEL PREDICTION: ${predictedGroup}</b>
-📊 Confidence: ${confidence}%
-💡 Reason: Previous result was <b>${switchValue || predictedGroup}</b>
-
-🔄 Model Status: <b>ACTIVE</b>
-👤 User Preference: ${serverAI?.getUserPreference() || 'AUTO'}
-
-${STYLES.SWITCH.separator}
-
-🔵 CONTINUE Model Value: ${continueValue || '--'}
-🟡 SWITCH Model Value: ${switchValue || '--'}
-
-⏳ Waiting for next result...`;
-}
-
-// Format sub-pattern message for CONTINUE model
-function formatContinueSubPatternMessage(currentPattern, subPattern, description, continueValue, switchValue) {
-    return `${STYLES.CONTINUE.subPattern}
-
-🔍 <b>SUB-PATTERN DETECTED!</b>
-
-📍 Current Active Pattern: <b>${currentPattern}</b>
-✨ New Sub-Pattern: <b>${subPattern}</b>
-📝 Description: ${description || 'Valid 3-step pattern'}
-
-${STYLES.CONTINUE.separator}
-
-🔵 CONTINUE Model Value: ${continueValue || '--'}
-🟡 SWITCH Model Value: ${switchValue || '--'}
-
-💡 Pattern detected while in prediction mode (not switching)
-🕐 Time: ${new Date().toLocaleTimeString()}`;
-}
-
-// Format sub-pattern message for SWITCH model
-function formatSwitchSubPatternMessage(currentPattern, subPattern, description, continueValue, switchValue) {
-    return `${STYLES.SWITCH.subPattern}
-
-🔍 <b>SUB-PATTERN DETECTED!</b>
-
-📍 Current Active Pattern: <b>${currentPattern}</b>
-✨ New Sub-Pattern: <b>${subPattern}</b>
-📝 Description: ${description || 'Valid 3-step pattern'}
-
-${STYLES.SWITCH.separator}
-
-🔵 CONTINUE Model Value: ${continueValue || '--'}
-🟡 SWITCH Model Value: ${switchValue || '--'}
-
-💡 Pattern detected while in prediction mode (not switching)
-🕐 Time: ${new Date().toLocaleTimeString()}`;
-}
-
-// Format wrong prediction message for CONTINUE model
-function formatContinueWrongMessage(actualGroup, predictedGroup, retryCount, subPattern) {
-    let message = `${STYLES.CONTINUE.wrong}
-
-<b>❌ WRONG PREDICTION</b>
-
-Predicted: <b>${predictedGroup}</b>
-Actual: <b>${actualGroup}</b>
-Retry: #${retryCount}`;
+// Send pattern trigger notification
+async function sendPatternTriggerNotification(patternString, predictedGroup, activeModel) {
+    console.log(`🎯 Sending pattern trigger notification for pattern: ${patternString} using ${activeModel}`);
     
-    if (subPattern) {
-        message += `\n\n🔍 Sub-Pattern Detected: ${subPattern}`;
-    }
-    
-    return message;
-}
-
-// Format wrong prediction message for SWITCH model
-function formatSwitchWrongMessage(actualGroup, predictedGroup, retryCount, subPattern) {
-    let message = `${STYLES.SWITCH.wrong}
-
-<b>❌ WRONG PREDICTION</b>
-
-Predicted: <b>${predictedGroup}</b>
-Actual: <b>${actualGroup}</b>
-Retry: #${retryCount}`;
-    
-    if (subPattern) {
-        message += `\n\n🔍 Sub-Pattern Detected: ${subPattern}`;
-    }
-    
-    return message;
-}
-
-// Format correct prediction message for CONTINUE model
-function formatContinueCorrectMessage(actualGroup, predictedGroup, retryCount, subPattern) {
-    let message = `${STYLES.CONTINUE.correct}
-
-<b>✅ CORRECT PREDICTION!</b>
-
-Predicted: <b>${predictedGroup}</b>
-Actual: <b>${actualGroup}</b>${retryCount > 0 ? `\nCorrect after ${retryCount} retries` : ''}
-
-🔄 Model reset to WAIT mode. Waiting for next pattern...`;
-    
-    if (subPattern) {
-        message += `\n\n🔍 Sub-Pattern Detected: ${subPattern}`;
-    }
-    
-    return message;
-}
-
-// Format correct prediction message for SWITCH model
-function formatSwitchCorrectMessage(actualGroup, predictedGroup, retryCount, subPattern) {
-    let message = `${STYLES.SWITCH.correct}
-
-<b>✅ CORRECT PREDICTION!</b>
-
-Predicted: <b>${predictedGroup}</b>
-Actual: <b>${actualGroup}</b>${retryCount > 0 ? `\nCorrect after ${retryCount} retries` : ''}
-
-🔄 Model reset to WAIT mode. Waiting for next pattern...`;
-    
-    if (subPattern) {
-        message += `\n\n🔍 Sub-Pattern Detected: ${subPattern}`;
-    }
-    
-    return message;
-}
-
-// Send pattern trigger notification to both bots
-async function sendPatternTriggerNotification(patternString, predictedGroup, confidence, continueValue, switchValue, activeModel) {
-    console.log(`🎯 Sending pattern trigger notification for pattern: ${patternString}`);
-    
-    // Send to CONTINUE bot
-    const continueMessage = formatContinueTriggerMessage(patternString, predictedGroup, confidence, continueValue, switchValue);
-    await sendOrEditTelegramMessage(
-        process.env.CONTINUE_BOT_TOKEN,
-        process.env.CONTINUE_CHAT_ID,
-        continueMessage,
-        true
-    );
-    
-    // Send to SWITCH bot
-    const switchMessage = formatSwitchTriggerMessage(patternString, predictedGroup, confidence, continueValue, switchValue);
-    await sendOrEditTelegramMessage(
-        process.env.SWITCH_BOT_TOKEN,
-        process.env.SWITCH_CHAT_ID,
-        switchMessage,
-        false
-    );
-}
-
-// Send sub-pattern notification to both bots
-async function sendSubPatternNotificationToBoth(currentPattern, subPattern, description, continueValue, switchValue) {
-    console.log(`🔍 Sending sub-pattern notification: ${subPattern}`);
-    
-    // Send to CONTINUE bot
-    const continueMessage = formatContinueSubPatternMessage(currentPattern, subPattern, description, continueValue, switchValue);
-    await sendOrEditTelegramMessage(
-        process.env.CONTINUE_BOT_TOKEN,
-        process.env.CONTINUE_CHAT_ID,
-        continueMessage,
-        true
-    );
-    
-    // Send to SWITCH bot
-    const switchMessage = formatSwitchSubPatternMessage(currentPattern, subPattern, description, continueValue, switchValue);
-    await sendOrEditTelegramMessage(
-        process.env.SWITCH_BOT_TOKEN,
-        process.env.SWITCH_CHAT_ID,
-        switchMessage,
-        false
-    );
-}
-
-// Send wrong prediction to appropriate bot
-async function sendWrongNotification(modelUsed, actualGroup, predictedGroup, retryCount, subPattern) {
-    if (modelUsed === 'CONTINUE') {
-        const message = formatContinueWrongMessage(actualGroup, predictedGroup, retryCount, subPattern);
+    if (activeModel === 'CONTINUE') {
+        const message = formatContinueTriggerMessage(patternString, predictedGroup);
         await sendOrEditTelegramMessage(
             process.env.CONTINUE_BOT_TOKEN,
             process.env.CONTINUE_CHAT_ID,
@@ -339,7 +144,7 @@ async function sendWrongNotification(modelUsed, actualGroup, predictedGroup, ret
             true
         );
     } else {
-        const message = formatSwitchWrongMessage(actualGroup, predictedGroup, retryCount, subPattern);
+        const message = formatSwitchTriggerMessage(patternString, predictedGroup);
         await sendOrEditTelegramMessage(
             process.env.SWITCH_BOT_TOKEN,
             process.env.SWITCH_CHAT_ID,
@@ -349,10 +154,12 @@ async function sendWrongNotification(modelUsed, actualGroup, predictedGroup, ret
     }
 }
 
-// Send correct prediction to appropriate bot
-async function sendCorrectNotification(modelUsed, actualGroup, predictedGroup, retryCount, subPattern) {
-    if (modelUsed === 'CONTINUE') {
-        const message = formatContinueCorrectMessage(actualGroup, predictedGroup, retryCount, subPattern);
+// Send sub-pattern notification
+async function sendSubPatternNotification(currentPattern, subPattern, activeModel) {
+    console.log(`🔍 Sending sub-pattern notification: ${subPattern}`);
+    
+    if (activeModel === 'CONTINUE') {
+        const message = formatContinueSubPatternMessage(currentPattern, subPattern);
         await sendOrEditTelegramMessage(
             process.env.CONTINUE_BOT_TOKEN,
             process.env.CONTINUE_CHAT_ID,
@@ -360,7 +167,49 @@ async function sendCorrectNotification(modelUsed, actualGroup, predictedGroup, r
             true
         );
     } else {
-        const message = formatSwitchCorrectMessage(actualGroup, predictedGroup, retryCount, subPattern);
+        const message = formatSwitchSubPatternMessage(currentPattern, subPattern);
+        await sendOrEditTelegramMessage(
+            process.env.SWITCH_BOT_TOKEN,
+            process.env.SWITCH_CHAT_ID,
+            message,
+            false
+        );
+    }
+}
+
+// Send wrong prediction notification
+async function sendWrongNotification(modelUsed, predictedGroup, actualGroup, retryCount) {
+    if (modelUsed === 'CONTINUE') {
+        const message = formatContinueWrongMessage(predictedGroup, actualGroup, retryCount);
+        await sendOrEditTelegramMessage(
+            process.env.CONTINUE_BOT_TOKEN,
+            process.env.CONTINUE_CHAT_ID,
+            message,
+            true
+        );
+    } else {
+        const message = formatSwitchWrongMessage(predictedGroup, actualGroup, retryCount);
+        await sendOrEditTelegramMessage(
+            process.env.SWITCH_BOT_TOKEN,
+            process.env.SWITCH_CHAT_ID,
+            message,
+            false
+        );
+    }
+}
+
+// Send correct prediction notification
+async function sendCorrectNotification(modelUsed, predictedGroup, actualGroup) {
+    if (modelUsed === 'CONTINUE') {
+        const message = formatContinueCorrectMessage(predictedGroup, actualGroup);
+        await sendOrEditTelegramMessage(
+            process.env.CONTINUE_BOT_TOKEN,
+            process.env.CONTINUE_CHAT_ID,
+            message,
+            true
+        );
+    } else {
+        const message = formatSwitchCorrectMessage(predictedGroup, actualGroup);
         await sendOrEditTelegramMessage(
             process.env.SWITCH_BOT_TOKEN,
             process.env.SWITCH_CHAT_ID,
@@ -381,7 +230,7 @@ const dbPath = path.join(dbDir, 'lightning_dice.db');
 console.log('📂 Database path:', dbPath);
 const db = new sqlite3.Database(dbPath);
 
-// Create tables (UPDATED for v11.2)
+// Create tables (UPDATED for v11.3 - with both model predictions)
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS results (
         id TEXT PRIMARY KEY,
@@ -410,7 +259,9 @@ db.serialize(() => {
         switch_value TEXT,
         active_model TEXT,
         user_preference TEXT,
-        sub_pattern_detected TEXT
+        sub_pattern_detected TEXT,
+        continue_prediction TEXT,
+        switch_prediction TEXT
     )`);
     
     db.run(`CREATE TABLE IF NOT EXISTS ai_stats (
@@ -451,15 +302,17 @@ db.serialize(() => {
         detected_at DATETIME
     )`);
     
-    db.run(`ALTER TABLE predictions ADD COLUMN sub_pattern_detected TEXT`, (err) => {
-        if (err && !err.message.includes('duplicate column')) {
-            // Column already exists
-        }
+    // Add new columns if not exist
+    db.run(`ALTER TABLE predictions ADD COLUMN continue_prediction TEXT`, (err) => {
+        if (err && !err.message.includes('duplicate column')) {}
+    });
+    db.run(`ALTER TABLE predictions ADD COLUMN switch_prediction TEXT`, (err) => {
+        if (err && !err.message.includes('duplicate column')) {}
     });
     
     db.run(`INSERT OR IGNORE INTO user_settings (id, preference, updated_at) VALUES (1, 'AUTO', datetime('now'))`);
     
-    console.log('✅ Database tables created/verified (v11.2 ready)');
+    console.log('✅ Database tables created/verified (v11.3 ready)');
 });
 
 // ============ AI MODEL INITIALIZATION ============
@@ -468,7 +321,7 @@ let lastSubPatternNotification = null;
 let lastPatternTriggerNotification = null;
 
 async function initNewAI() {
-    console.log('🤖 Initializing Dual Model 3-Step Pattern AI (v11.2)...');
+    console.log('🤖 Initializing Independent Dual Model 3-Step Pattern AI (v11.3)...');
     serverAI = new NewPatternAI();
     
     // Register sub-pattern callback
@@ -483,16 +336,12 @@ async function initNewAI() {
         lastSubPatternNotification = now;
         
         if (subPatternData.currentPattern && subPatternData.subPattern) {
-            // Send to both bots with styled messages
-            await sendSubPatternNotificationToBoth(
+            await sendSubPatternNotification(
                 subPatternData.currentPattern,
                 subPatternData.subPattern,
-                subPatternData.description,
-                subPatternData.continueModelValue || '--',
-                subPatternData.switchModelValue || '--'
+                subPatternData.activeModel || 'CONTINUE'
             );
             
-            // Save to database
             db.run(`INSERT INTO sub_pattern_log (current_pattern, sub_pattern, description, detected_at) VALUES (?, ?, ?, ?)`,
                 [subPatternData.currentPattern, subPatternData.subPattern, subPatternData.description, new Date().toISOString()],
                 (err) => {
@@ -501,7 +350,6 @@ async function initNewAI() {
                 }
             );
             
-            // Broadcast via WebSocket
             broadcast({
                 type: 'sub_pattern_detected',
                 data: {
@@ -548,15 +396,12 @@ async function initNewAI() {
         console.log('No existing AI state found, starting fresh');
     }
     
-    console.log(`✅ AI ready - Dual Model 3-Step Pattern AI v11.2 with Sub-Pattern Detection`);
-    console.log(`📋 DUAL MODEL SYSTEM (v11.2):`);
-    console.log(`   🔵 CONTINUE Model: Always predicts LAST result`);
-    console.log(`   🟡 SWITCH Model: Always predicts PREVIOUS result`);
-    console.log(`   🎯 Selector Model: Learns which model works best per pattern`);
-    console.log(`   🔍 Sub-Pattern Detection: Detects patterns while in prediction mode`);
-    console.log(`   👤 User can choose: CONTINUE only, SWITCH only, or AUTO`);
-    console.log(`📱 Telegram: TWO separate bots with STYLED messages (Green/Orange themes)`);
-    console.log(`📝 Pattern trigger notifications now sent to both bots!`);
+    console.log(`✅ AI ready - Independent Dual Model 3-Step Pattern AI v11.3`);
+    console.log(`📋 INDEPENDENT DUAL MODEL SYSTEM (v11.3):`);
+    console.log(`   🔵 CONTINUE Model: Always predicts LAST result (INDEPENDENT)`);
+    console.log(`   🟡 SWITCH Model: Always predicts PREVIOUS result (INDEPENDENT)`);
+    console.log(`   ✨ Models do NOT affect each other!`);
+    console.log(`📱 Telegram: Simple, clean messages`);
 }
 
 // Save AI state to database periodically
@@ -607,7 +452,7 @@ app.use(express.static('public'));
 
 // ============ WEB SOCKET SERVER ============
 const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n⚡ Lightning Dice Predictor v11.2 - Dual Model AI with Sub-Pattern Detection`);
+    console.log(`\n⚡ Lightning Dice Predictor v11.3 - Independent Dual Model AI`);
     console.log(`📍 http://localhost:${PORT}`);
     console.log(`🚀 Server running on port ${PORT}\n`);
     initNewAI();
@@ -661,7 +506,6 @@ function getResultsData(limit = 100) {
                     timestamp: row.timestamp
                 }));
                 formatted.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                console.log(`✅ getResultsData returning ${formatted.length} results`);
                 resolve(formatted);
             }
         });
@@ -700,10 +544,11 @@ function getPredictionsData(limit = 500) {
                     activeModel: p.active_model,
                     userPreference: p.user_preference,
                     subPatternDetected: p.sub_pattern_detected,
+                    continuePrediction: p.continue_prediction,
+                    switchPrediction: p.switch_prediction,
                     timestamp: new Date(p.prediction_timestamp),
                     isPending: p.actual_group === null
                 }));
-                console.log(`✅ getPredictionsData returning ${transformed.length} valid predictions (WAITING filtered out)`);
                 resolve(transformed);
             }
         });
@@ -757,9 +602,7 @@ function getPreviousResultsForPrediction(limit = 10) {
                 console.error('Error getting previous results:', err);
                 resolve([]);
             } else {
-                console.log(`📊 getPreviousResultsForPrediction returned ${results?.length || 0} results`);
                 if (results && results.length > 0) {
-                    console.log(`   Last groups: ${results.map(r => r.group_value).join(', ')}`);
                     const formatted = results.map(r => ({ group: r.group_value, id: r.id, timestamp: r.timestamp }));
                     resolve(formatted);
                 } else {
@@ -782,7 +625,6 @@ async function getCurrentPredictionData() {
     const last3Results = await getLast3Results();
     
     if (!last3Results || last3Results.length < 3) {
-        console.log(`⚠️ Not enough history for prediction (need 3 results, waiting...)`);
         return {
             pattern3step: null,
             protectionType: null,
@@ -801,19 +643,14 @@ async function getCurrentPredictionData() {
         const prediction = serverAI.predict(last3Results, null);
         const bothPredictions = serverAI.getBothPredictions();
         
-        // Send pattern trigger notification if pattern matched and this is a new trigger
         if (prediction.status === "PREDICTION_READY" && prediction.pattern) {
             const now = Date.now();
             if (!lastPatternTriggerNotification || (now - lastPatternTriggerNotification) > 5000) {
                 lastPatternTriggerNotification = now;
                 
-                // Send to both bots
                 await sendPatternTriggerNotification(
                     prediction.pattern,
                     prediction.predictedGroup,
-                    prediction.confidence,
-                    prediction.continueValue,
-                    prediction.switchValue,
                     prediction.activeModel
                 );
             }
@@ -877,6 +714,8 @@ async function savePredictionOnly(resultId, last3Results) {
     let activeModel = null;
     let userPreference = null;
     let subPatternDetected = null;
+    let continuePrediction = null;
+    let switchPrediction = null;
     
     if (serverAI) {
         const dynamicVals = serverAI.getDynamicValues();
@@ -885,13 +724,16 @@ async function savePredictionOnly(resultId, last3Results) {
         activeModel = dynamicVals.activeModel;
         userPreference = dynamicVals.userPreference;
         subPatternDetected = dynamicVals.subPatternDetected || null;
+        continuePrediction = dynamicVals.continuePrediction;
+        switchPrediction = dynamicVals.switchPrediction;
     }
     
     console.log(`\n📝 SAVING PREDICTION for ${resultId}:`);
-    console.log(`   Pattern (3-Step): ${prediction.pattern3step || 'N/A'}`);
+    console.log(`   Pattern: ${prediction.pattern3step || 'N/A'}`);
     console.log(`   Active Model: ${activeModel || prediction.protectionType || 'N/A'}`);
-    console.log(`   Predicted Group: ${prediction.predictedGroup || 'N/A'}`);
-    console.log(`   Sub-Pattern Detected: ${subPatternDetected || 'None'}`);
+    console.log(`   FINAL Prediction: ${prediction.predictedGroup || 'N/A'}`);
+    console.log(`   🔵 CONTINUE predicts: ${continuePrediction || '--'}`);
+    console.log(`   🟡 SWITCH predicts: ${switchPrediction || '--'}`);
     
     const existing = await new Promise((resolve) => {
         db.get(`SELECT id FROM predictions WHERE result_id = ?`, [resultId], (err, row) => {
@@ -917,10 +759,13 @@ async function savePredictionOnly(resultId, last3Results) {
                     switch_value = ?,
                     active_model = ?,
                     user_preference = ?,
-                    sub_pattern_detected = ?
+                    sub_pattern_detected = ?,
+                    continue_prediction = ?,
+                    switch_prediction = ?
                     WHERE result_id = ?`,
                 [prediction.pattern3step, modelToSave, prediction.predictedGroup, new Date().toISOString(), 
-                 isRetry, retryNumber, continueValue, switchValue, modelToSave, prefToSave, subPatternDetected, resultId],
+                 isRetry, retryNumber, continueValue, switchValue, modelToSave, prefToSave, subPatternDetected,
+                 continuePrediction, switchPrediction, resultId],
                 (err) => {
                     if (err) {
                         console.error('Error updating prediction:', err);
@@ -936,11 +781,13 @@ async function savePredictionOnly(resultId, last3Results) {
         return new Promise((resolve) => {
             const stmt = db.prepare(`INSERT INTO predictions (
                     result_id, pattern_3step, protection_type, predicted_group, prediction_timestamp,
-                    is_correct, is_retry, retry_number, continue_value, switch_value, active_model, user_preference, sub_pattern_detected
-                ) VALUES (?, ?, ?, ?, ?, -1, ?, ?, ?, ?, ?, ?, ?)`);
+                    is_correct, is_retry, retry_number, continue_value, switch_value, active_model, 
+                    user_preference, sub_pattern_detected, continue_prediction, switch_prediction
+                ) VALUES (?, ?, ?, ?, ?, -1, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
             
             stmt.run([resultId, prediction.pattern3step, modelToSave, prediction.predictedGroup, new Date().toISOString(),
-                      isRetry, retryNumber, continueValue, switchValue, modelToSave, prefToSave, subPatternDetected], (err) => {
+                      isRetry, retryNumber, continueValue, switchValue, modelToSave, prefToSave, 
+                      subPatternDetected, continuePrediction, switchPrediction], (err) => {
                 if (err) {
                     console.error('Error saving prediction:', err);
                     resolve(null);
@@ -959,7 +806,7 @@ async function updatePredictionWithResult(resultId, actualGroup) {
     console.log(`   ACTUAL RESULT: ${actualGroup}`);
     
     const prediction = await new Promise((resolve) => {
-        db.get(`SELECT predicted_group, pattern_3step, protection_type, is_retry, retry_number, active_model, sub_pattern_detected FROM predictions WHERE result_id = ?`, [resultId], (err, row) => {
+        db.get(`SELECT predicted_group, pattern_3step, protection_type, is_retry, retry_number, active_model, sub_pattern_detected, continue_prediction, switch_prediction FROM predictions WHERE result_id = ?`, [resultId], (err, row) => {
             resolve(row);
         });
     });
@@ -970,16 +817,16 @@ async function updatePredictionWithResult(resultId, actualGroup) {
     }
     
     const isCorrect = (prediction.predicted_group === actualGroup) ? 1 : 0;
-    const isRetry = prediction.is_retry === 1;
     const retryCount = prediction.retry_number || 0;
     const modelUsed = prediction.active_model || prediction.protection_type || 'CONTINUE';
-    const subPatternDetected = prediction.sub_pattern_detected || null;
     
-    console.log(`   PREDICTED: ${prediction.predicted_group} → ${isCorrect ? '✓ CORRECT' : '✗ WRONG'}`);
+    console.log(`   FINAL Predicted: ${prediction.predicted_group} → ${isCorrect ? '✓ CORRECT' : '✗ WRONG'}`);
     console.log(`   Model Used: ${modelUsed}`);
-    console.log(`   Sub-Pattern: ${subPatternDetected || 'None'}`);
     
-    let subPatternInfo = null;
+    let continueCorrect = null;
+    let switchCorrect = null;
+    let newContinuePrediction = null;
+    let newSwitchPrediction = null;
     
     if (serverAI) {
         const updateResult = serverAI.updateWithResult(actualGroup);
@@ -987,22 +834,18 @@ async function updatePredictionWithResult(resultId, actualGroup) {
         
         const modelsStatus = serverAI.getModelsStatus();
         console.log(`   Models Status - CONTINUE: ${modelsStatus.continue.isActive ? 'ACTIVE' : 'INACTIVE'}, SWITCH: ${modelsStatus.switch.isActive ? 'ACTIVE' : 'INACTIVE'}`);
-        console.log(`   Active Model: ${modelsStatus.activeModel || 'none'}`);
         
-        const dynamicVals = serverAI.getDynamicValues();
-        if (dynamicVals.subPatternDetected && dynamicVals.subPatternDetected !== subPatternDetected) {
-            subPatternInfo = dynamicVals.subPatternDetected;
-        }
+        continueCorrect = updateResult.continueCorrect;
+        switchCorrect = updateResult.switchCorrect;
+        newContinuePrediction = updateResult.continuePrediction;
+        newSwitchPrediction = updateResult.switchPrediction;
     }
     
-    // Send notification to appropriate bot
+    // Send simple notification
     if (isCorrect === 1) {
-        await sendCorrectNotification(modelUsed, actualGroup, prediction.predicted_group, retryCount, subPatternInfo);
-        aiMissCount = 0;
-        alertTriggered = false;
+        await sendCorrectNotification(modelUsed, prediction.predicted_group, actualGroup);
     } else {
-        aiMissCount++;
-        await sendWrongNotification(modelUsed, actualGroup, prediction.predicted_group, retryCount, subPatternInfo);
+        await sendWrongNotification(modelUsed, prediction.predicted_group, actualGroup, retryCount + 1);
     }
     
     return new Promise((resolve) => {
@@ -1177,7 +1020,7 @@ async function collectData() {
                     console.log(`🆕 New game detected: ${gameId}`);
                     
                     const last3Results = await getLast3Results();
-                    console.log(`📜 Last 3 results for prediction: ${last3Results ? last3Results.join(' → ') : 'not enough data'}`);
+                    console.log(`📜 Last 3 results: ${last3Results ? last3Results.join(' → ') : 'not enough data'}`);
                     
                     let predictionData = null;
                     
@@ -1295,6 +1138,8 @@ app.get('/api/all-data', async (req, res) => {
     }
 });
 
+// Keep all other existing API endpoints (they work the same)
+
 app.get('/api/predictions', (req, res) => {
     const limit = parseInt(req.query.limit) || 500;
     
@@ -1329,6 +1174,8 @@ app.get('/api/predictions', (req, res) => {
             active_model: p.active_model,
             user_preference: p.user_preference,
             sub_pattern_detected: p.sub_pattern_detected,
+            continue_prediction: p.continue_prediction,
+            switch_prediction: p.switch_prediction,
             prediction_timestamp: p.prediction_timestamp,
             is_pending: p.actual_group === null
         }));
@@ -1510,7 +1357,7 @@ app.get('/api/models-status', (req, res) => {
 app.get('/api/health', (req, res) => {
     res.json({ 
         status: 'OK', 
-        version: '11.2',
+        version: '11.3',
         timestamp: new Date().toISOString(),
         clients: clients.size,
         uptime: process.uptime(),
@@ -1554,7 +1401,7 @@ app.get('/api/diagnostic', async (req, res) => {
         
         res.json({
             success: true,
-            version: '11.2',
+            version: '11.3',
             database: {
                 path: dbPath,
                 exists: fs.existsSync(dbPath)
@@ -1576,9 +1423,7 @@ app.get('/api/diagnostic', async (req, res) => {
             telegram: {
                 continueBot: !!(process.env.CONTINUE_BOT_TOKEN && process.env.CONTINUE_CHAT_ID),
                 switchBot: !!(process.env.SWITCH_BOT_TOKEN && process.env.SWITCH_CHAT_ID),
-                styledMessages: true,
-                patternTriggerNotifications: true,
-                subPatternNotifications: true
+                simpleMessages: true
             }
         });
     } catch (error) {
@@ -1591,23 +1436,10 @@ setInterval(collectData, 3000);
 collectData();
 
 console.log('📊 Background data collection started (every 3 seconds)');
-console.log('🤖 Dual Model 3-Step Pattern AI v11.2 active - 6 patterns loaded');
+console.log('🤖 Independent Dual Model 3-Step Pattern AI v11.3 active');
 console.log('🔌 WebSocket server ready for real-time updates');
-console.log('📱 Telegram: TWO separate bots with STYLED messages');
-console.log('🔍 Sub-Pattern Detection: Active while in prediction mode');
-console.log('🎯 Pattern trigger notifications: NOW SENT to both bots!');
-console.log('📈 v11.2 Features:');
-console.log('   - 3-Step Pattern Detection (TRIGGER only)');
-console.log('   - 🔵 CONTINUE Model = Last Result (updates dynamically)');
-console.log('   - 🟡 SWITCH Model = Previous Result (updates dynamically)');
-console.log('   - 🎯 Selector Model learns which model works best');
-console.log('   - 🔍 Sub-Pattern Detection (detects patterns while predicting)');
-console.log('   - 📱 Two separate Telegram bots (Green/Orange themes)');
-console.log('   - 🎨 Styled messages with separators and emojis');
-console.log('   - 📢 Pattern trigger notifications to both bots');
-console.log('   - 👤 User can choose: CONTINUE only, SWITCH only, or AUTO');
-console.log('   - Real-Time Learning');
-console.log('✅ WAITING predictions are NOT saved and NOT sent to Telegram');
+console.log('📱 Telegram: Simple, clean messages for both bots');
+console.log('✨ Models are INDEPENDENT - they do NOT affect each other!');
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
