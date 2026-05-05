@@ -502,9 +502,9 @@ class LightningDiceApp {
         const mediumTrend = document.getElementById('mediumTrend');
         const highTrend = document.getElementById('highTrend');
         
-        if (lowProb) lowProb.textContent = `${Math.round((recentCount.LOW / total) * 100)}%`;
-        if (mediumProb) mediumProb.textContent = `${Math.round((recentCount.MEDIUM / total) * 100)}%`;
-        if (highProb) highProb.textContent = `${Math.round((recentCount.HIGH / total) * 100)}%`;
+        if (lowProb) lowProb.textContent = `${Math.round((recentCount.LOW / total) * 100)}% (${recentCount.LOW}/${total})`;
+        if (mediumProb) mediumProb.textContent = `${Math.round((recentCount.MEDIUM / total) * 100)}% (${recentCount.MEDIUM}/${total})`;
+        if (highProb) highProb.textContent = `${Math.round((recentCount.HIGH / total) * 100)}% (${recentCount.HIGH}/${total})`;
         if (lowTrend) lowTrend.textContent = this.getTrendText(recentCount.LOW, total);
         if (mediumTrend) mediumTrend.textContent = this.getTrendText(recentCount.MEDIUM, total);
         if (highTrend) highTrend.textContent = this.getTrendText(recentCount.HIGH, total);
