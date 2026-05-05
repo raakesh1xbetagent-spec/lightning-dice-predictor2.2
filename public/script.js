@@ -490,7 +490,7 @@ class LightningDiceApp {
             return;
         }
         
-        const recentResults = this.allResults.slice(0, 10);
+        const recentResults = this.allResults.slice(0, 30);
         const recentCount = { LOW: 0, MEDIUM: 0, HIGH: 0 };
         recentResults.forEach(r => { if (r && r.group) recentCount[r.group]++; });
         
