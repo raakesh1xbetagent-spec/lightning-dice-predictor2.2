@@ -3,68 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="description" content="Lightning Dice Predictor - Dual Model 3-Step Pattern AI System">
-    <title>Lightning Dice Predictor - Dual Model AI v11.0</title>
+    <meta name="description" content="Lightning Dice Predictor - SWITCH ONLY 3-Step Pattern AI System">
+    <title>Lightning Dice Predictor - SWITCH ONLY AI v12.0</title>
     <link rel="stylesheet" href="/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* Additional styles for v11.0 Dual Model UI */
-        .preference-selector {
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.6), rgba(30, 27, 75, 0.6));
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(251, 191, 36, 0.3);
-        }
-        
-        .preference-title {
-            font-size: 13px;
-            opacity: 0.7;
-            margin-bottom: 12px;
-            text-align: center;
-        }
-        
-        .preference-options {
-            display: flex;
-            justify-content: center;
-            gap: 25px;
-            flex-wrap: wrap;
-        }
-        
-        .pref-option {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            padding: 8px 16px;
-            border-radius: 40px;
-            background: rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
-        }
-        
-        .pref-option:hover {
-            background: rgba(251, 191, 36, 0.2);
-            transform: translateY(-2px);
-        }
-        
-        .pref-option input {
-            cursor: pointer;
-            width: 18px;
-            height: 18px;
-            accent-color: #fbbf24;
-        }
-        
-        .pref-option label {
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-        }
-        
-        .pref-continue label { color: #4ade80; }
-        .pref-switch label { color: #fbbf24; }
-        .pref-auto label { color: #a78bfa; }
-        
+        /* Additional styles for v12.0 SWITCH ONLY UI */
         .models-status {
             background: rgba(0,0,0,0.3);
             border-radius: 16px;
@@ -81,13 +25,14 @@
         
         .model-cards {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             gap: 15px;
             flex-wrap: wrap;
         }
         
         .model-card {
             flex: 1;
+            max-width: 300px;
             text-align: center;
             padding: 10px;
             background: rgba(0,0,0,0.2);
@@ -95,7 +40,6 @@
             transition: all 0.3s ease;
         }
         
-        .model-card.continue-card { border-left: 3px solid #4ade80; }
         .model-card.switch-card { border-left: 3px solid #fbbf24; }
         .model-card.active-card { background: rgba(251, 191, 36, 0.15); }
         
@@ -111,7 +55,6 @@
             margin: 5px 0;
         }
         
-        .model-value.continue { color: #4ade80; }
         .model-value.switch { color: #fbbf24; }
         
         .model-accuracy {
@@ -130,13 +73,14 @@
         .status-active { background: #4ade80; box-shadow: 0 0 5px #4ade80; }
         .status-inactive { background: #6b7280; }
         
-        .selector-decision {
-            background: rgba(251, 191, 36, 0.15);
+        .retry-badge {
+            display: inline-block;
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            padding: 2px 8px;
             border-radius: 12px;
-            padding: 10px;
-            margin-top: 10px;
-            text-align: center;
-            font-size: 11px;
+            font-size: 10px;
+            margin-left: 8px;
         }
     </style>
 </head>
@@ -146,10 +90,9 @@
             <div class="logo">
                 <span class="lightning-icon">⚡</span>
                 <h1>Lightning Dice Predictor</h1>
-                <span class="version-badge">v11.0 - Dual Model AI</span>
+                <span class="version-badge">v12.0 - SWITCH ONLY AI</span>
             </div>
             <div class="header-buttons">
-                <button class="debug-btn" id="debugBtn" onclick="window.open('/debug.html', '_blank')">🔧 Debug Dashboard</button>
                 <div class="status-badge" id="connectionStatus">
                     <span class="status-dot"></span>
                     <span id="statusText">Connecting...</span>
@@ -178,9 +121,9 @@
             </div>
         </div>
 
-        <!-- ============ DUAL MODEL PREDICTION SECTION (v11.0) ============ -->
+        <!-- ============ SWITCH ONLY PREDICTION SECTION (v12.0) ============ -->
         <div class="prediction-section">
-            <h2>🎯 DUAL MODEL 3-STEP PATTERN RECOGNITION SYSTEM</h2>
+            <h2>🎯 SWITCH ONLY 3-STEP PATTERN RECOGNITION SYSTEM</h2>
             
             <div class="pattern-info-bar">
                 <div class="info-item">
@@ -194,25 +137,6 @@
                 <div class="info-item">
                     <span class="info-label">🎯 Active Model:</span>
                     <span class="info-value" id="activeModelDisplay">--</span>
-                </div>
-            </div>
-
-            <!-- NEW: User Preference Selector -->
-            <div class="preference-selector">
-                <div class="preference-title">🎮 SELECT PREDICTION MODEL</div>
-                <div class="preference-options">
-                    <div class="pref-option pref-continue">
-                        <input type="radio" name="preference" id="prefContinue" value="CONTINUE">
-                        <label for="prefContinue">🔵 CONTINUE Only (Last Result)</label>
-                    </div>
-                    <div class="pref-option pref-switch">
-                        <input type="radio" name="preference" id="prefSwitch" value="SWITCH">
-                        <label for="prefSwitch">🟡 SWITCH Only (Previous Result)</label>
-                    </div>
-                    <div class="pref-option pref-auto">
-                        <input type="radio" name="preference" id="prefAuto" value="AUTO" checked>
-                        <label for="prefAuto">🤖 AUTO (Selector Decides)</label>
-                    </div>
                 </div>
             </div>
 
@@ -234,25 +158,17 @@
                 </div>
             </div>
 
-            <!-- NEW: Both Models Status Display -->
+            <!-- SWITCH Model Status Display -->
             <div class="models-status" id="modelsStatus">
-                <div class="models-title">🔬 DUAL MODEL STATUS</div>
+                <div class="models-title">🔬 SWITCH MODEL STATUS</div>
                 <div class="model-cards">
-                    <div class="model-card continue-card" id="continueModelCard">
-                        <div class="model-name">🔵 CONTINUE MODEL</div>
-                        <div class="model-value continue" id="continueModelValue">--</div>
-                        <div class="model-accuracy" id="continueModelAccuracy">Accuracy: 0%</div>
-                        <div class="model-status" id="continueModelStatus">⚪ Inactive</div>
-                    </div>
                     <div class="model-card switch-card" id="switchModelCard">
                         <div class="model-name">🟡 SWITCH MODEL</div>
                         <div class="model-value switch" id="switchModelValue">--</div>
                         <div class="model-accuracy" id="switchModelAccuracy">Accuracy: 0%</div>
                         <div class="model-status" id="switchModelStatus">⚪ Inactive</div>
+                        <div class="retry-info" id="retryInfo" style="font-size: 9px; margin-top: 5px;"></div>
                     </div>
-                </div>
-                <div class="selector-decision" id="selectorDecision">
-                    🎯 Selector: Waiting for pattern...
                 </div>
             </div>
 
@@ -260,7 +176,7 @@
                 <div class="final-header">
                     <span class="final-icon">🏆</span>
                     <span class="final-title">AI FINAL PREDICTION</span>
-                    <span class="final-vote" id="predictionType">(Model)</span>
+                    <span class="final-vote" id="predictionType">(SWITCH Model)</span>
                 </div>
                 <div class="final-group" id="finalGroup">
                     <span class="final-group-icon" id="finalIcon">🎯</span>
@@ -278,7 +194,7 @@
             </div>
         </div>
 
-        <!-- ============ AVAILABLE PATTERNS REFERENCE (UPDATED for v11.0) ============ -->
+        <!-- ============ AVAILABLE PATTERNS REFERENCE (UPDATED for v12.0) ============ -->
         <div class="patterns-reference">
             <div class="section-header">
                 <h2>📚 Available 3-Step Patterns (6 Total - TRIGGER Only)</h2>
@@ -286,36 +202,33 @@
             <div class="patterns-grid">
                 <div class="pattern-card">
                     <div class="pattern-3step">LOW → HIGH → MEDIUM</div>
-                    <div class="pattern-actions">🎯 TRIGGER only - activates dual models</div>
+                    <div class="pattern-actions">🎯 TRIGGER only - activates SWITCH model</div>
                 </div>
                 <div class="pattern-card">
                     <div class="pattern-3step">HIGH → LOW → MEDIUM</div>
-                    <div class="pattern-actions">🎯 TRIGGER only - activates dual models</div>
+                    <div class="pattern-actions">🎯 TRIGGER only - activates SWITCH model</div>
                 </div>
                 <div class="pattern-card">
                     <div class="pattern-3step">MEDIUM → LOW → HIGH</div>
-                    <div class="pattern-actions">🎯 TRIGGER only - activates dual models</div>
+                    <div class="pattern-actions">🎯 TRIGGER only - activates SWITCH model</div>
                 </div>
                 <div class="pattern-card">
                     <div class="pattern-3step">MEDIUM → HIGH → LOW</div>
-                    <div class="pattern-actions">🎯 TRIGGER only - activates dual models</div>
+                    <div class="pattern-actions">🎯 TRIGGER only - activates SWITCH model</div>
                 </div>
                 <div class="pattern-card">
                     <div class="pattern-3step">LOW → MEDIUM → HIGH</div>
-                    <div class="pattern-actions">🎯 TRIGGER only - activates dual models</div>
+                    <div class="pattern-actions">🎯 TRIGGER only - activates SWITCH model</div>
                 </div>
                 <div class="pattern-card">
                     <div class="pattern-3step">HIGH → MEDIUM → LOW</div>
-                    <div class="pattern-actions">🎯 TRIGGER only - activates dual models</div>
+                    <div class="pattern-actions">🎯 TRIGGER only - activates SWITCH model</div>
                 </div>
             </div>
             <div class="pattern-note">
-                💡 <strong>How it works (v11.0 Dual Model System):</strong><br>
-                🔹 <strong>Pattern Detection:</strong> When one of the 6 patterns is detected, DUAL MODELS ACTIVATE.<br>
-                🔹 <strong>🔵 CONTINUE Model:</strong> Always predicts LAST result (updates dynamically)<br>
+                💡 <strong>How it works (v12.0 SWITCH ONLY System):</strong><br>
+                🔹 <strong>Pattern Detection:</strong> When one of the 6 patterns is detected, SWITCH MODEL ACTIVATES.<br>
                 🔹 <strong>🟡 SWITCH Model:</strong> Always predicts PREVIOUS result (updates dynamically)<br>
-                🔹 <strong>🎯 Selector Model:</strong> Learns which model works best for each pattern<br>
-                🔹 <strong>👤 User Preference:</strong> You can choose CONTINUE only, SWITCH only, or AUTO<br>
                 🔹 <strong>Wrong Prediction:</strong> Same model continues with updated values<br>
                 🔹 <strong>Correct Prediction:</strong> Prediction mode ends, returns to WAIT mode<br>
                 ⏳ <strong>WAIT mode:</strong> No pattern detected yet - waiting for 3 results
