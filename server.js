@@ -3,6 +3,7 @@
 // Features: 3-Step Pattern Detection | SWITCH Model Only
 // Telegram: ONLY sends notifications for VALID predictions (not WAITING mode)
 // UPDATED: Single model system (SWITCH only)
+// FIXED: Duplicate Telegram notifications
 // ============================================================
 
 // Fix memory leak warnings
@@ -30,9 +31,15 @@ const PORT = process.env.PORT || 3000;
 let aiMissCount = 0;
 let alertTriggered = false;
 
+// DUPLICATE NOTIFICATION PREVENTION
+let lastSentNotification = {
+    resultId: null,
+    timestamp: null
+};
+
 // ============ TELEGRAM FUNCTIONS - ONLY FOR VALID PREDICTIONS ============
 
-async function sendTelegramWrongNotification(actualGroup, predictedGroup, retryCount = 0, modelUsed = null) {
+async function sendTelegramWrongNotification(actualGroup, predictedGroup, retryCount = 0, modelUsed = null, resultId = null) {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_CHAT_ID;
     
@@ -44,6 +51,14 @@ async function sendTelegramWrongNotification(actualGroup, predictedGroup, retryC
     // CRITICAL FIX: Don't send notification if prediction was WAITING mode
     if (!predictedGroup || predictedGroup === 'WAITING' || predictedGroup === '--' || predictedGroup === null) {
         console.log(`📱 Telegram: Skipping notification - Invalid prediction (${predictedGroup})`);
+        return;
+    }
+    
+    // DUPLICATE CHECK: একই result ID এর জন্য 2 সেকেন্ডের মধ্যে আর না পাঠানো
+    if (resultId && lastSentNotification.resultId === resultId && 
+        lastSentNotification.timestamp && 
+        Date.now() - lastSentNotification.timestamp < 2000) {
+        console.log(`📱 Telegram: Skipping duplicate WRONG notification for ${resultId}`);
         return;
     }
     
@@ -61,13 +76,20 @@ Actual: ${actualGroup}${retryText}`;
             chat_id: chatId,
             text: message
         });
+        
+        // Update last sent notification
+        lastSentNotification = {
+            resultId: resultId,
+            timestamp: Date.now()
+        };
+        
         console.log(`📱 Telegram: WRONG notification sent for ${predictedGroup} → ${actualGroup}`);
     } catch (error) {
         console.error('❌ Telegram error:', error.message);
     }
 }
 
-async function sendTelegramCorrectNotification(actualGroup, predictedGroup, wasRetry = false, retryCount = 0, modelUsed = null) {
+async function sendTelegramCorrectNotification(actualGroup, predictedGroup, wasRetry = false, retryCount = 0, modelUsed = null, resultId = null) {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_CHAT_ID;
     
@@ -78,6 +100,14 @@ async function sendTelegramCorrectNotification(actualGroup, predictedGroup, wasR
     // CRITICAL FIX: Don't send notification if prediction was WAITING mode
     if (!predictedGroup || predictedGroup === 'WAITING' || predictedGroup === '--' || predictedGroup === null) {
         console.log(`📱 Telegram: Skipping notification - Invalid prediction (${predictedGroup})`);
+        return;
+    }
+    
+    // DUPLICATE CHECK: একই result ID এর জন্য 2 সেকেন্ডের মধ্যে আর না পাঠানো
+    if (resultId && lastSentNotification.resultId === resultId && 
+        lastSentNotification.timestamp && 
+        Date.now() - lastSentNotification.timestamp < 2000) {
+        console.log(`📱 Telegram: Skipping duplicate CORRECT notification for ${resultId}`);
         return;
     }
     
@@ -95,6 +125,13 @@ Actual: ${actualGroup}${retryText}`;
             chat_id: chatId,
             text: message
         });
+        
+        // Update last sent notification
+        lastSentNotification = {
+            resultId: resultId,
+            timestamp: Date.now()
+        };
+        
         console.log(`📱 Telegram: CORRECT notification sent for ${predictedGroup} → ${actualGroup}`);
     } catch (error) {
         console.error('❌ Telegram error:', error.message);
@@ -228,6 +265,7 @@ async function initNewAI() {
     console.log(`   🔄 Updates dynamically on wrong prediction`);
     console.log(`   ✅ Resets to WAIT mode on correct prediction`);
     console.log(`📱 Telegram: ONLY sends for VALID predictions (ignores WAITING mode)`);
+    console.log(`📱 Telegram: Duplicate prevention enabled (2 second cooldown per resultId)`);
 }
 
 // Save AI state to database periodically
@@ -628,13 +666,14 @@ async function updatePredictionWithResult(resultId, actualGroup) {
     }
     
     // ============ TELEGRAM NOTIFICATION - ONLY FOR VALID PREDICTIONS ============
+    // FIXED: Pass resultId to prevent duplicate notifications
     if (isCorrect === 1) {
-        await sendTelegramCorrectNotification(actualGroup, prediction.predicted_group, isRetry, retryCount, modelUsed);
+        await sendTelegramCorrectNotification(actualGroup, prediction.predicted_group, isRetry, retryCount, modelUsed, resultId);
         aiMissCount = 0;
         alertTriggered = false;
     } else {
         aiMissCount++;
-        await sendTelegramWrongNotification(actualGroup, prediction.predicted_group, retryCount, modelUsed);
+        await sendTelegramWrongNotification(actualGroup, prediction.predicted_group, retryCount, modelUsed, resultId);
     }
     // ============ END TELEGRAM LOGIC ============
     
@@ -1138,7 +1177,8 @@ app.get('/api/diagnostic', async (req, res) => {
             modelsStatus: serverAI ? serverAI.getModelsStatus() : null,
             telegram: {
                 configured: !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID),
-                onlyValidPredictions: true
+                onlyValidPredictions: true,
+                duplicatePrevention: true
             }
         });
     } catch (error) {
@@ -1154,6 +1194,7 @@ console.log('📊 Background data collection started (every 3 seconds)');
 console.log('🤖 SWITCH ONLY 3-Step Pattern AI v12.0 active - 6 patterns loaded');
 console.log('🔌 WebSocket server ready for real-time updates');
 console.log('📱 Telegram: ONLY sends for VALID predictions (WAITING mode is ignored)');
+console.log('📱 Telegram: Duplicate prevention (2 second cooldown per resultId)');
 console.log('📈 v12.0 Features:');
 console.log('   - 3-Step Pattern Detection (TRIGGER only)');
 console.log('   - 🟡 SWITCH Model = Previous Result (updates dynamically)');
